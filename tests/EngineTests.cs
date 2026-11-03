@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization.Json;
+using System.Runtime.InteropServices;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
@@ -15,6 +16,22 @@ namespace BongoClaim
         private static string temp;
         private static string fixture;
 
+        [DllImport("shell32.dll", SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern IntPtr CommandLineToArgvW(string commandLine, out int argumentCount);
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr LocalFree(IntPtr allocation);
+        private static string[] ParseWindowsArguments(string arguments)
+        {
+            int count;
+            var argv = CommandLineToArgvW("\"fixture.exe\" " + arguments, out count);
+            if (argv == IntPtr.Zero) throw new Exception("Windows argument parser failed: " + Marshal.GetLastWin32Error());
+            try {
+                var result = new string[count - 1];
+                for (int i = 1; i < count; i++) result[i - 1] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(argv, i * IntPtr.Size));
+                return result;
+            }
+            finally { LocalFree(argv); }
+        }
         private static void Assert(bool condition, string message) { if (!condition) throw new Exception(message); }
         private static void Throws(Action action, string contains)
         {
@@ -306,11 +323,13 @@ namespace BongoClaim
                 Assert(snapshot(root).SequenceEqual(before) && !Directory.Exists(Path.Combine(root, ".bongo-claim")), "Update guard wrote a patch or backup before rejecting");
                 Assert(PatchEngine.Hash(manifest) == manifestHash, "Update guard changed Steam's manifest");
             });
-            Test("launcher accepts the fully installed Steam manifest flag 4", delegate {
-                var root = newSteamGame(); var manifest = manifestPath(root); File.WriteAllText(manifest, "\"AppState\" { \"StateFlags\" \"4\" }"); var manifestHash = PatchEngine.Hash(manifest);
-                Assert(!StartupLauncher.IsUpdatePending(File.ReadAllText(manifest)), "Fully installed state was blocked");
-                var ready = StartupLauncher.Prepare(root); Assert(ready.Supported && ready.OwnedTokenControls, "Installed manifest prevented preparation");
-                Assert(PatchEngine.Hash(manifest) == manifestHash, "Preparation changed Steam's manifest");
+            Test("launcher accepts fully installed Steam flags 4 and 68 during guarded launch", delegate {
+                foreach (var flags in new[] { "4", "68" }) {
+                    var root = newSteamGame(); var manifest = manifestPath(root); File.WriteAllText(manifest, "\"AppState\" { \"StateFlags\" \"" + flags + "\" }"); var manifestHash = PatchEngine.Hash(manifest);
+                    Assert(!StartupLauncher.IsUpdatePending(File.ReadAllText(manifest)), "Fully installed state was blocked: " + flags);
+                    var ready = StartupLauncher.Prepare(root); Assert(ready.Supported && ready.OwnedTokenControls, "Installed manifest prevented preparation: " + flags);
+                    Assert(PatchEngine.Hash(manifest) == manifestHash, "Preparation changed Steam's manifest");
+                }
             });
             Test("launcher rejects noninstalled and unfamiliar Steam flag combinations without writes", delegate {
                 foreach (var flags in new[] { "0", "2", "5", "1024", "18446744073709551615" }) {
@@ -328,6 +347,75 @@ namespace BongoClaim
                     Throws(delegate { StartupLauncher.Prepare(root); }, "pending or incomplete");
                     Assert(snapshot(root).SequenceEqual(before) && !Directory.Exists(Path.Combine(root, ".bongo-claim")), "Malformed manifest wrote game files");
                 }
+            });
+        }
+        private static void SteamGuardTests()
+        {
+            Action<string[]> roundTrip = args => Assert(ParseWindowsArguments(StartupLauncher.FormatArguments(args)).SequenceEqual(args), "Windows argument formatting changed argument values or boundaries");
+            Test("Steam argument formatting round-trips empty values and whitespace through Windows", delegate {
+                roundTrip(new string[0]);
+                roundTrip(new[] { "", "plain", "two words", " leading", "trailing ", "\t", "one\ttwo", "line\nbreak", "" });
+            });
+            Test("Steam argument formatting preserves quotes and trailing backslashes", delegate {
+                roundTrip(new[] { "\"", "quoted \"words\"", @"C:\", @"C:\Game Files\BongoCat\", @"ends\\", @"plain\tail" });
+                for (int count = 0; count <= 8; count++) {
+                    var slashes = new string('\\', count);
+                    roundTrip(new[] { slashes + "\"", "before " + slashes + "\"after", "space " + slashes, "\"" + slashes + "\"" });
+                }
+            });
+            Test("Steam argument formatting keeps shell characters and Unicode literal", delegate {
+                roundTrip(new[] { "&", "|", ">out", "<input", "%APPDATA%", "!bang!", "^caret", "$(value)", "`tick`", ";next", "(group)", "*?[]", "--value=\"x & y\"", "caf\u00e9 \u732b" });
+            });
+            Test("Steam argument formatting rejects missing argument containers and elements", delegate {
+                Throws(delegate { StartupLauncher.FormatArguments(null); }, "args");
+                Throws(delegate { StartupLauncher.FormatArguments(new[] { "valid", null }); }, "argument is missing");
+            });
+            Test("Steam executable validation accepts and normalizes only the fixture game path", delegate {
+                var root = NewGame(); var exe = Path.Combine(root, "BongoCat.exe"); var original = PatchEngine.Hash(exe);
+                Assert(String.Equals(StartupLauncher.ValidateSteamGamePath(exe), Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase), "Game root was not returned");
+                Assert(String.Equals(StartupLauncher.ValidateSteamGamePath(Path.Combine(root, ".", "BongoCat.exe")), Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase), "Game root was not normalized");
+                Assert(PatchEngine.Hash(exe) == original && !Directory.Exists(Path.Combine(root, ".bongo-claim")), "Path validation modified the game");
+            });
+            Test("Steam executable validation rejects missing and relative command paths", delegate {
+                foreach (var exe in new[] { null, "", " ", "BongoCat.exe", @".\BongoCat.exe", @"C:BongoCat.exe", @"\BongoCat.exe" })
+                    Throws(delegate { StartupLauncher.ValidateSteamGamePath(exe); }, "full path");
+            });
+            Test("Steam executable validation rejects unrelated files and missing executables", delegate {
+                var root = NewGame(); var other = Path.Combine(root, "Other.exe"); File.WriteAllText(other, "source-owned non-game fixture");
+                Throws(delegate { StartupLauncher.ValidateSteamGamePath(other); }, "existing BongoCat.exe");
+                Throws(delegate { StartupLauncher.ValidateSteamGamePath(PatchEngine.GameAssembly(root)); }, "existing BongoCat.exe");
+                Throws(delegate { StartupLauncher.ValidateSteamGamePath(Path.Combine(root, "missing", "BongoCat.exe")); }, "existing BongoCat.exe");
+                Assert(!Directory.Exists(Path.Combine(root, ".bongo-claim")), "Rejected executable validation created install state");
+            });
+            Func<string, string> quotedRoot = root => "\"" + root.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+            Test("Steam guard metadata enables patching only for its matching game root", delegate {
+                var root = Path.Combine(temp, "guard-enabled"); var json = "{\"Root\":" + quotedRoot(root) + ",\"Enabled\":true}";
+                Assert(StartupLauncher.SteamGuardRequiresPatch(root, json), "Matching enabled guard did not request patch preparation");
+                Assert(StartupLauncher.SteamGuardRequiresPatch(Path.Combine(root, "."), json), "Equivalent normalized game root was rejected");
+            });
+            Test("Steam guard metadata explicitly disables patch preparation after restore", delegate {
+                var root = Path.Combine(temp, "guard-disabled"); var json = "{\"Root\":" + quotedRoot(root) + ",\"Enabled\":false}";
+                Assert(!StartupLauncher.SteamGuardRequiresPatch(root, json), "Explicitly disabled guard would reinstall after restore");
+            });
+            Test("Steam guard metadata rejects missing or malformed required fields", delegate {
+                var root = Path.Combine(temp, "guard-missing");
+                foreach (var json in new[] { null, "", " ", "{", "null", "{}", "{\"Root\":" + quotedRoot(root) + "}", "{\"Enabled\":true}", "{\"Root\":null,\"Enabled\":false}" })
+                    Throws(delegate { StartupLauncher.SteamGuardRequiresPatch(root, json); }, "Steam launch guard setup");
+            });
+            Test("Steam guard metadata refuses enabled or disabled state belonging to another game root", delegate {
+                var root = Path.Combine(temp, "guard-current"); var other = Path.Combine(temp, "guard-other");
+                foreach (var enabled in new[] { "true", "false" }) {
+                    var json = "{\"Root\":" + quotedRoot(other) + ",\"Enabled\":" + enabled + "}";
+                    Throws(delegate { StartupLauncher.SteamGuardRequiresPatch(root, json); }, "Steam launch guard setup");
+                }
+            });
+            Test("Steam launch rejects absent or unrelated executable commands before preparation", delegate {
+                Throws(delegate { StartupLauncher.SteamLaunch(null); }, "original Bongo Cat launch command");
+                Throws(delegate { StartupLauncher.SteamLaunch(new string[0]); }, "original Bongo Cat launch command");
+                var root = NewGame(); var other = Path.Combine(root, "Other.exe"); File.WriteAllText(other, "source-owned non-game fixture");
+                var target = PatchEngine.GameAssembly(root); var original = PatchEngine.Hash(target);
+                Throws(delegate { StartupLauncher.SteamLaunch(new[] { other, "--example", "x & y" }); }, "existing BongoCat.exe");
+                Assert(PatchEngine.Hash(target) == original && !Directory.Exists(Path.Combine(root, ".bongo-claim")), "Rejected launch prepared the game before validating its executable");
             });
         }
         public static int Main()
@@ -530,6 +618,7 @@ namespace BongoClaim
                 });
                 FeatureTests();
                 StartupTests();
+                SteamGuardTests();
                 Console.WriteLine("All " + passed + " tests passed."); return 0;
             }
             catch (Exception ex)

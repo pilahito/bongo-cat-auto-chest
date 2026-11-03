@@ -42,7 +42,7 @@ namespace BongoClaim
                             return 0;
                         case "--restore":
                             if (args.Length < 2) throw new ArgumentException("Usage: --restore <game folder>");
-                            PatchEngine.EnsureGameClosed(args[1]); StartupLauncher.Disable(args[1]); Console.WriteLine(PatchEngine.Restore(args[1]));
+                            PatchEngine.EnsureGameClosed(args[1]); StartupLauncher.DisableSteamGuard(args[1]); StartupLauncher.Disable(args[1]); Console.WriteLine(PatchEngine.Restore(args[1]));
                             return 0;
                         case "--enable-startup":
                             if (args.Length < 2) throw new ArgumentException("Usage: --enable-startup <game folder>");
@@ -52,13 +52,23 @@ namespace BongoClaim
                             if (args.Length < 2) throw new ArgumentException("Usage: --disable-startup <game folder>");
                             Console.WriteLine(StartupLauncher.Disable(args[1]));
                             return 0;
+                        case "--steam-command":
+                            if (args.Length < 2) throw new ArgumentException("Usage: --steam-command <game folder>");
+                            Console.WriteLine(StartupLauncher.PrepareSteamLaunchCommand(args[1]));
+                            return 0;
+                        case "--steam-launch":
+                            if (args.Length < 2) throw new ArgumentException("Steam did not supply the original BongoCat.exe command. Copy the Steam launch command from the helper and keep %command% in Launch Options.");
+                            var steamCommand = new string[args.Length - 1];
+                            Array.Copy(args, 1, steamCommand, 0, steamCommand.Length);
+                            Console.WriteLine(StartupLauncher.SteamLaunch(steamCommand));
+                            return 0;
                         case "--launch":
                             if (args.Length < 2) throw new ArgumentException("Usage: --launch <game folder>");
                             Console.WriteLine(StartupLauncher.Launch(args[1]));
                             return 0;
                         default:
-                            Console.WriteLine("Bongo Cat Auto Chest 1.3.0 — run without arguments for the desktop app.");
-                            Console.WriteLine("Commands: --inspect, --patch-copy, --install, --restore, --enable-startup, --disable-startup, --launch.");
+                            Console.WriteLine("Bongo Cat Auto Chest 1.4.0 — run without arguments for the desktop app.");
+                            Console.WriteLine("Commands: --inspect, --patch-copy, --install, --restore, --enable-startup, --disable-startup, --launch, --steam-command, --steam-launch.");
                             Console.WriteLine("Optional: --normal-only starts emote claims disabled; --emotes is accepted for compatibility.");
                             Console.WriteLine("After installation, use Bongo Cat Settings > General for saved toggles, owned tokens and pet controls.");
                             Console.WriteLine("Keyboard: open the game menu, then F7 for normal or F9 for emote. Choices are saved.");
@@ -69,7 +79,7 @@ namespace BongoClaim
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine(Array.IndexOf(args, "--verbose") >= 0 ? ex.ToString() : ex.Message);
-                    if (args[0] == "--launch") MessageBox.Show(ex.Message + "\n\nOpen Bongo Cat Auto Chest to check your game. No running game was patched.", "Bongo Cat Auto Chest — startup check", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    if (args[0] == "--launch" || args[0] == "--steam-launch") MessageBox.Show(ex.Message + "\n\nOpen Bongo Cat Auto Chest to check your game. No running game was patched.", "Bongo Cat Auto Chest — startup check", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return 1;
                 }
             }

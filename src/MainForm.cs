@@ -16,15 +16,15 @@ namespace BongoClaim
         private readonly Color Ink = Color.FromArgb(20, 25, 31), PanelColor = Color.FromArgb(29, 36, 43), Mint = Color.FromArgb(162, 238, 190), Muted = Color.FromArgb(156, 171, 181);
         private TextBox folder;
         private Label status, fingerprint;
-        private Button inspect, install, restore, browse, startup;
+        private Button inspect, install, restore, browse, startup, steamCommand;
         private bool isBusy;
 
         public MainForm()
         {
             Text = "Bongo Cat Auto Chest";
-            ClientSize = new Size(670, 745);
-            MinimumSize = new Size(670, 785);
-            MaximumSize = new Size(870, 785);
+            ClientSize = new Size(670, 805);
+            MinimumSize = new Size(670, 845);
+            MaximumSize = new Size(870, 845);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
@@ -36,7 +36,7 @@ namespace BongoClaim
             var mark = TextLabel("ฅ", 31, Mint); mark.SetBounds(28, 22, 55, 60); Controls.Add(mark);
             var brand = TextLabel("BONGO CAT AUTO CHEST", 18, Color.White); brand.Font = new Font("Segoe UI", 18, FontStyle.Bold); brand.SetBounds(91, 28, 390, 35); Controls.Add(brand);
             var subtitle = TextLabel("Your cat keeps playing. Your chests get claimed.", 10, Muted); subtitle.SetBounds(92, 66, 490, 24); Controls.Add(subtitle);
-            var badge = TextLabel("WINDOWS  /  v1.3", 8, Mint); badge.SetBounds(520, 34, 125, 22); Controls.Add(badge);
+            var badge = TextLabel("WINDOWS  /  v1.4", 8, Mint); badge.SetBounds(520, 34, 125, 22); Controls.Add(badge);
             var rule = new Panel { BackColor = PanelColor }; rule.SetBounds(30, 110, 610, 1); Controls.Add(rule);
             var heading = TextLabel("01   FIND YOUR GAME", 9, Muted); heading.SetBounds(30, 134, 400, 23); Controls.Add(heading);
             folder = new TextBox { BackColor = PanelColor, ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, AccessibleName = "Bongo Cat game folder" }; folder.SetBounds(30, 168, 493, 32); Controls.Add(folder);
@@ -55,10 +55,12 @@ namespace BongoClaim
             install = MakeButton("Install auto claim  →", true, delegate { RunChange(false); }); install.SetBounds(164, 545, 282, 44); Controls.Add(install);
             restore = MakeButton("Restore original", false, delegate { RunChange(true); }); restore.SetBounds(460, 545, 180, 44); Controls.Add(restore);
             var foot = TextLabel("Exit Bongo Cat before installing or restoring. Claims consume real owned\ntokens. The helper can be closed after installation.", 9, Muted); foot.SetBounds(30, 604, 610, 43); Controls.Add(foot);
-            startup = MakeButton("Enable startup repair", false, delegate { RunStartupChange(); }); startup.SetBounds(30, 655, 282, 38); Controls.Add(startup);
-            var startupHint = TextLabel("Check and repair before starting Bongo Cat\nat Windows sign-in. Optional; exit game first.", 9, Muted); startupHint.SetBounds(326, 654, 314, 43); Controls.Add(startupHint);
-            var github = new LinkLabel { Text = "Source & downloads ↗", LinkColor = Mint, ActiveLinkColor = Color.White, VisitedLinkColor = Mint, BackColor = Ink, Font = new Font("Segoe UI", 9), AutoSize = true }; github.SetBounds(30, 715, 230, 20); github.LinkClicked += delegate { Process.Start("https://github.com/NH4OH-35/bongo-cat-auto-chest"); }; Controls.Add(github);
-            var offline = TextLabel("LOCAL TOOL · NO LOGIN · NO KEY SIMULATION", 8, Muted); offline.SetBounds(342, 717, 310, 20); Controls.Add(offline);
+            steamCommand = MakeButton("Copy Steam launch command", false, delegate { CopySteamCommand(); }); steamCommand.SetBounds(30, 655, 282, 38); Controls.Add(steamCommand);
+            var steamHint = TextLabel("Check before every Steam launch.\nPaste once in Steam Launch Options.", 9, Muted); steamHint.SetBounds(326, 654, 314, 43); Controls.Add(steamHint);
+            startup = MakeButton("Enable startup repair", false, delegate { RunStartupChange(); }); startup.SetBounds(30, 715, 282, 38); Controls.Add(startup);
+            var startupHint = TextLabel("Check and repair before starting Bongo Cat\nat Windows sign-in. Optional; exit game first.", 9, Muted); startupHint.SetBounds(326, 714, 314, 43); Controls.Add(startupHint);
+            var github = new LinkLabel { Text = "Source & downloads ↗", LinkColor = Mint, ActiveLinkColor = Color.White, VisitedLinkColor = Mint, BackColor = Ink, Font = new Font("Segoe UI", 9), AutoSize = true }; github.SetBounds(30, 775, 230, 20); github.LinkClicked += delegate { Process.Start("https://github.com/NH4OH-35/bongo-cat-auto-chest"); }; Controls.Add(github);
+            var offline = TextLabel("LOCAL TOOL · NO LOGIN · NO KEY SIMULATION", 8, Muted); offline.SetBounds(342, 777, 310, 20); Controls.Add(offline);
             Shown += delegate { folder.Text = FindGame(); CheckGame(); };
             FormClosing += delegate(object sender, FormClosingEventArgs e) { if (isBusy) e.Cancel = true; };
         }
@@ -70,7 +72,7 @@ namespace BongoClaim
             result.FlatAppearance.BorderSize = 0; result.Click += click; return result;
         }
 
-        private void Busy(bool busy) { isBusy = busy; foreach (var c in new Control[] { folder, browse, inspect, install, restore, startup }) c.Enabled = !busy; UseWaitCursor = busy; }
+        private void Busy(bool busy) { isBusy = busy; foreach (var c in new Control[] { folder, browse, inspect, install, restore, startup, steamCommand }) c.Enabled = !busy; UseWaitCursor = busy; }
 
         private void CheckGame()
         {
@@ -85,8 +87,9 @@ namespace BongoClaim
                 restore.Enabled = File.Exists(Path.Combine(folder.Text, ".bongo-claim", "install.json"));
                 startup.Text = StartupLauncher.EnabledFor(folder.Text) ? "Disable startup repair" : "Enable startup repair";
                 startup.Enabled = StartupLauncher.EnabledFor(folder.Text) || (result.Supported && result.OwnedTokenControls);
+                steamCommand.Enabled = result.Supported && result.OwnedTokenControls;
             }
-            catch (Exception ex) { status.Text = ex.Message; status.ForeColor = Color.FromArgb(255, 195, 154); install.Enabled = false; restore.Enabled = false; startup.Enabled = false; }
+            catch (Exception ex) { status.Text = ex.Message; status.ForeColor = Color.FromArgb(255, 195, 154); install.Enabled = false; restore.Enabled = false; startup.Enabled = false; steamCommand.Enabled = false; }
         }
 
         private void RunChange(bool undo)
@@ -97,7 +100,7 @@ namespace BongoClaim
             var worker = new BackgroundWorker();
             worker.DoWork += delegate(object sender, DoWorkEventArgs e)
             {
-                if (undo) { PatchEngine.EnsureGameClosed(root); StartupLauncher.Disable(root); e.Result = PatchEngine.Restore(root); }
+                if (undo) { PatchEngine.EnsureGameClosed(root); StartupLauncher.DisableSteamGuard(root); StartupLauncher.Disable(root); e.Result = PatchEngine.Restore(root); }
                 else e.Result = PatchEngine.Install(root, true);
             };
             worker.RunWorkerCompleted += delegate(object sender, RunWorkerCompletedEventArgs e)
@@ -110,6 +113,18 @@ namespace BongoClaim
             worker.RunWorkerAsync();
         }
 
+        private void CopySteamCommand()
+        {
+            if (isBusy) return;
+            try
+            {
+                var command = StartupLauncher.PrepareSteamLaunchCommand(folder.Text);
+                Clipboard.SetText(command);
+                status.Text = "Copied. In Steam: Bongo Cat > Properties > General > Launch Options. Paste the command once.";
+                status.ForeColor = Mint;
+            }
+            catch (Exception ex) { status.Text = ex.Message; status.ForeColor = Color.FromArgb(255, 195, 154); }
+        }
         private void RunStartupChange()
         {
             if (isBusy) return;
