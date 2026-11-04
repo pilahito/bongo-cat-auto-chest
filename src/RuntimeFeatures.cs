@@ -119,8 +119,12 @@ namespace BongoCat {
             placedRect.anchoredPosition = new Vector2(sourceRect.anchoredPosition.x + sourceRect.sizeDelta.x + 4f, sourceRect.anchoredPosition.y);
             __BongoClaim_ExchangeIcon_v1.SetActive(visible);
             var iconLabel = __BongoClaim_ExchangeIcon_v1.transform.Find("Label").GetComponent<TMP_Text>();
-            iconLabel.text = __BongoClaim_AutoExchange_v1 ? "↻" : "⟳";
-            iconLabel.color = __BongoClaim_AutoExchange_v1 ? new Color(0.45f, 1f, 0.65f, 1f) : Color.white;
+            var iconImage = __BongoClaim_ExchangeIcon_v1.GetComponent<Image>();
+            float iconHeight = placedRect.sizeDelta.y;
+            iconLabel.text = __BongoClaim_AutoExchange_v1 ? "⟳" : "↻";
+            iconLabel.fontSize = Math.Max(16f, Math.Min(27f, iconHeight * 0.72f));
+            iconLabel.color = __BongoClaim_AutoExchange_v1 ? new Color(0.48f, 1f, 0.68f, 1f) : new Color(0.88f, 0.9f, 0.92f, 1f);
+            iconImage.color = __BongoClaim_AutoExchange_v1 ? new Color(0.12f, 0.32f, 0.24f, 1f) : new Color(0.18f, 0.22f, 0.25f, 0.96f);
         }
         private static FieldInfo __BongoClaim_FindField_v1(Type type, string name, bool isStatic) {
             return type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | (isStatic ? BindingFlags.Static : BindingFlags.Instance));
