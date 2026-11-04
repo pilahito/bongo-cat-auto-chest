@@ -16,6 +16,7 @@ namespace UnityEngine {
     public enum KeyCode { Backspace=8, Return=13, Escape=27, Insert=277, F10=291, F11=292, KeypadEnter=271 }
     public static class Input { public static bool GetKeyDown(KeyCode key) { return false; } }
     public static class Application { public static bool isFocused { get { return false; } } }
+    public static class Debug { public static void Log(object message) {} }
     public static class Time { public static float unscaledTime { get { return 0; } } }
 }
 namespace UnityEngine.Events { public delegate void UnityAction(); }

@@ -44,6 +44,8 @@ namespace BongoCat {
         private static GameObject __BongoClaim_ExchangeIcon_v1;
         private static bool __BongoClaim_ThemeApplied_v1;
         private static float __BongoClaim_NextThemeProbe_v1;
+        private static Component __BongoClaim_ThemeIconColor_v1;
+        private static bool __BongoClaim_ThemeSelected_v1;
         private static bool __BongoClaim_AutoExchange_v1;
         private static bool __BongoClaim_ExchangeInFlight_v1;
         private static float __BongoClaim_NextExchange_v1;
@@ -117,7 +119,15 @@ namespace BongoCat {
             if (redraw != null) redraw.Invoke(manager, new object[] { themed });
         }
         private static void __BongoClaim_ApplyNativeTheme_v1(Component arrow, GameObject icon, Button button, TMP_Text label) {
-            if (__BongoClaim_ThemeApplied_v1 || !arrow || !icon || !button || !label || Time.unscaledTime < __BongoClaim_NextThemeProbe_v1) return;
+            if (!arrow || !icon || !button || !label) return;
+            if (__BongoClaim_ThemeApplied_v1) {
+                if (__BongoClaim_ThemeIconColor_v1 && __BongoClaim_ThemeSelected_v1 != __BongoClaim_AutoExchange_v1) {
+                    __BongoClaim_FindMethod_v1(__BongoClaim_ThemeIconColor_v1.GetType(), "SetSelected", 1).Invoke(__BongoClaim_ThemeIconColor_v1, new object[] { __BongoClaim_AutoExchange_v1 });
+                    __BongoClaim_ThemeSelected_v1 = __BongoClaim_AutoExchange_v1;
+                }
+                return;
+            }
+            if (Time.unscaledTime < __BongoClaim_NextThemeProbe_v1) return;
             __BongoClaim_NextThemeProbe_v1 = Time.unscaledTime + 1f;
             Type gameAssembly = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.ThemedButton");
             Type iconThemeType = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.ThemedIconButton");
@@ -140,9 +150,14 @@ namespace BongoCat {
                     FieldInfo buttonField = iconColorType.GetField("_button", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                     if (buttonField != null) buttonField.SetValue(targetIcon, button);
                     targetIconField.SetValue(target, targetIcon);
+                    __BongoClaim_ThemeIconColor_v1 = targetIcon;
                 }
                 __BongoClaim_RefreshTheme_v1(target);
                 __BongoClaim_ThemeApplied_v1 = true;
+                if (__BongoClaim_ThemeIconColor_v1) {
+                    __BongoClaim_FindMethod_v1(__BongoClaim_ThemeIconColor_v1.GetType(), "SetSelected", 1).Invoke(__BongoClaim_ThemeIconColor_v1, new object[] { __BongoClaim_AutoExchange_v1 });
+                    __BongoClaim_ThemeSelected_v1 = __BongoClaim_AutoExchange_v1;
+                }
                 return;
             }
             if (iconThemeType == null) return;
@@ -197,19 +212,10 @@ namespace BongoCat {
             var iconImage = __BongoClaim_ExchangeIcon_v1.GetComponent<Image>();
             float iconHeight = placedRect.sizeDelta.y;
             iconLabel.text = "♥";
-            iconLabel.fontSize = Math.Max(18f, Math.Min(27f, iconHeight * 0.82f));
+            iconLabel.fontSize = Math.Max(17f, Math.Min(__BongoClaim_AutoExchange_v1 ? 27f : 22f, iconHeight * (__BongoClaim_AutoExchange_v1 ? 0.86f : 0.70f)));
             iconLabel.color = Color.white;
-            var sourceImage = arrow.GetComponent<Image>();
-            if (sourceImage) iconImage.color = sourceImage.color;
-            var sourceButton = arrow.GetComponent<Button>();
             var iconButton = __BongoClaim_ExchangeIcon_v1.GetComponent<Button>();
             __BongoClaim_ApplyNativeTheme_v1(arrow, __BongoClaim_ExchangeIcon_v1, iconButton, iconLabel);
-            if (sourceButton && iconButton) {
-                var palette = sourceButton.colors;
-                if (__BongoClaim_AutoExchange_v1) palette.normalColor = palette.highlightedColor;
-                iconButton.colors = palette;
-                iconButton.targetGraphic = iconImage;
-            }
         }
         private static FieldInfo __BongoClaim_FindField_v1(Type type, string name, bool isStatic) {
             return type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | (isStatic ? BindingFlags.Static : BindingFlags.Instance));
@@ -308,7 +314,9 @@ namespace BongoCat {
                 FieldInfo visibleField = visibleType == null ? null : __BongoClaim_FindField_v1(visibleType, "Instance", true);
                 object visibleExchange = visibleField == null ? null : visibleField.GetValue(null);
                 if (visibleExchange != null) __BongoClaim_EnsureExchangeIcon_v1(visibleExchange);
-            } catch { }
+            } catch (Exception ex) {
+                UnityEngine.Debug.Log("[Bongo Cat Auto Chest] Could not apply the exchange icon theme: " + ex.Message);
+            }
             if (!SteamTools.Interface.IsReady) return;
             try {
                 if (__BongoClaim_ExchangeInFlight_v1) {
@@ -330,11 +338,11 @@ namespace BongoCat {
                 FieldInfo instanceField = __BongoClaim_FindField_v1(exchangeType, "Instance", true);
                 object exchange = instanceField == null ? null : instanceField.GetValue(null);
                 if (exchange == null) { __BongoClaim_ExchangeStatus_v1 = "ACTIVO | abre la colección"; return; }
-                Type groupType = exchangeType.GetNestedType("Group", BindingFlags.Public | BindingFlags.NonPublic);
+                Type groupType = __BongoClaim_FindMethod_v1(exchangeType, "CanFillExchangeWithDuplicates", 2).GetParameters()[0].ParameterType;
+            if (groupType == null || !groupType.IsEnum) throw new InvalidOperationException("The game's emoji exchange group is unavailable");
                 object group = Enum.Parse(groupType, "Emote");
-                if (__BongoClaim_ExchangeCanFill_v1(exchange, group)) __BongoClaim_StartEmojiExchange_v1(exchange, exchangeType, group);
-                else __BongoClaim_ExchangeStatus_v1 = "ACTIVO | no hay duplicados";
-            } catch {
+                __BongoClaim_StartEmojiExchange_v1(exchange, exchangeType, group);
+            } catch (Exception ex) {
                 try {
                     if (!__BongoClaim_ExchangeInFlight_v1 && !Steam.ChestExchanger.__BongoClaim_IsBusy_v1()) {
                         Type failedType = __BongoClaim_FindExchangeType_v1();
@@ -345,7 +353,11 @@ namespace BongoCat {
                 } catch { }
                 __BongoClaim_AutoExchange_v1 = false;
                 __BongoClaim_ExchangeInFlight_v1 = false;
-                __BongoClaim_ExchangeStatus_v1 = "DESACTIVADO | error";
+                string error = ex.Message;
+                if (error.Length > 42) error = error.Substring(0, 42);
+                __BongoClaim_ExchangeStatus_v1 = "DESACTIVADO | " + error;
+                __BongoClaim_SetLabel_v1(__BongoClaim_ExchangeRow_v1, __BongoClaim_ExchangeLabel_v1());
+                UnityEngine.Debug.Log("[Bongo Cat Auto Chest] Emoji exchange stopped: " + error);
             }
         }
         public void __BongoClaim_CreateTokenActions_v1() {

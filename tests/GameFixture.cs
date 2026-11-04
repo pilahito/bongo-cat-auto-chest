@@ -6,6 +6,7 @@ using System.Reflection;
 
 namespace UnityEngine
 {
+    public static class Debug { public static readonly List<string> Logs = new List<string>(); public static void Log(object message) { Logs.Add(Convert.ToString(message)); } }
     public class Object
     {
         private static readonly List<Object> scene = new List<Object>();

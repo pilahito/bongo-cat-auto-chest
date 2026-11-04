@@ -95,7 +95,8 @@ namespace BongoClaim {
         private static bool IsThemeUpgradeHook(string name) {
             return name == "__BongoClaim_FindThemedSibling_v1" || name == "__BongoClaim_CopyThemeFields_v1"
                 || name == "__BongoClaim_RefreshTheme_v1" || name == "__BongoClaim_ApplyNativeTheme_v1"
-                || name == "__BongoClaim_ThemeApplied_v1" || name == "__BongoClaim_NextThemeProbe_v1";
+                || name == "__BongoClaim_ThemeApplied_v1" || name == "__BongoClaim_NextThemeProbe_v1"
+                || name == "__BongoClaim_ThemeIconColor_v1" || name == "__BongoClaim_ThemeSelected_v1";
         }
         public static void Validate(AssemblyDefinition asm) {
             using (var template = Template()) {

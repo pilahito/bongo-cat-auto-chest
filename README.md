@@ -70,7 +70,7 @@ Leave **Steam and Bongo Cat running** for auto-claim to work. You can close the 
 Saved preferences take precedence over these defaults. A request already sent can finish after you disable its switch. Automatic claims use the game's existing timer and exchange requirements; claims cost pets while **Keep pets when claiming** is off.
 ## Intercambio automático de emojis duplicados
 
-Pulsa el botón **↻** que aparece junto a la flecha de rellenado de duplicados en el panel de colección para activar o detener el intercambio automático. También puedes usar **Ajustes → General → 🔄 Intercambio automático de emojis duplicados**. Empieza desactivado cada vez que abres el juego.
+Pulsa el botón **♥** que aparece junto a la flecha de rellenado de duplicados en el panel de colección para activar o detener el intercambio automático. El botón usa el tema visual del juego y cambia de aspecto cuando está activo. También puedes usar **Ajustes → General → 🔄 Intercambio automático de emojis duplicados**. Empieza desactivado cada vez que abres el juego.
 
 Cuando está activado, el mod revisa el grupo de intercambio de **emojis** e inicia los intercambios elegibles con un intervalo mínimo de tres segundos. Espera a que termine cualquier intercambio en curso y respeta los espacios que hayas rellenado manualmente. No rellena ni intercambia el grupo de cosméticos. El juego consume los duplicados al intercambiarlos; apagar el botón no cancela una petición ya enviada, pero evita que empiece otra. Si ocurre un error, el botón se apaga y muestra el estado.
 
