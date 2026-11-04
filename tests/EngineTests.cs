@@ -425,6 +425,27 @@ namespace BongoClaim
             try
             {
                 Test("recognises source-owned current-shape fixture", delegate { Assert(PatchEngine.Inspect(fixture).Supported, "Fixture unsupported"); });
+                Test("emoji auto exchange opens the emoji tab before checking duplicates", delegate {
+                    var asm = Patched(false); var exchangeType = asm.GetType("BongoCat.ItemExchange");
+                    exchangeType.GetField("LastOpenedTab").SetValue(null, -1); exchangeType.GetField("CanFillCalls").SetValue(null, 0);
+                    var exchange = Activator.CreateInstance(exchangeType); var groupType = exchangeType.GetNestedType("ExchangeGroup");
+                    var group = Enum.Parse(groupType, "Emote");
+                    var start = asm.GetType("BongoCat.SettingsManager").GetMethod("__BongoClaim_StartEmojiExchange_v1", BindingFlags.NonPublic | BindingFlags.Static);
+                    start.Invoke(null, new object[] { exchange, exchangeType, group });
+                    Assert((int)exchangeType.GetField("LastOpenedTab").GetValue(null) == 7, "The emoji tab was not opened first");
+                    Assert((int)exchangeType.GetField("CanFillCalls").GetValue(null) == 1, "Duplicate availability was not checked after selecting the tab");
+                    Assert((string)asm.GetType("BongoCat.SettingsManager").GetField("__BongoClaim_ExchangeStatus_v1", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null) == "ACTIVO | no hay duplicados", "Unexpected no-duplicate status");
+                });
+                Test("emoji auto exchange preserves manually filled slots", delegate {
+                    var asm = Patched(false); var exchangeType = asm.GetType("BongoCat.ItemExchange");
+                    exchangeType.GetField("LastOpenedTab").SetValue(null, -1); exchangeType.GetField("CanFillCalls").SetValue(null, 0);
+                    var exchange = Activator.CreateInstance(exchangeType); exchangeType.GetProperty("HasItemsSlotted").SetValue(exchange, true, null);
+                    var group = Enum.Parse(exchangeType.GetNestedType("ExchangeGroup"), "Emote");
+                    var start = asm.GetType("BongoCat.SettingsManager").GetMethod("__BongoClaim_StartEmojiExchange_v1", BindingFlags.NonPublic | BindingFlags.Static);
+                    start.Invoke(null, new object[] { exchange, exchangeType, group });
+                    Assert((int)exchangeType.GetField("LastOpenedTab").GetValue(null) == -1, "The user's selected tab or slots were changed");
+                    Assert((int)exchangeType.GetField("CanFillCalls").GetValue(null) == 0, "Manual slots should block automatic filling");
+                });
                 Test("normal ready chest claims once and suppresses its popup", delegate {
                     var asm = Patched(false); var shop = Shop(asm, true, false, false); Call(shop, "OnChestReady"); Call(shop, "OnChestReady");
                     Assert(Purchases(shop) == 1, "Duplicate or missing claim"); Assert((int)shop.GetType().GetField("Popups").GetValue(shop) == 1, "First successful claim should suppress popup; second remains original behavior");

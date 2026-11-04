@@ -197,6 +197,18 @@ namespace BongoCat.UiThemes { public class ToggleImageColor : UnityEngine.MonoBe
 
 namespace BongoCat
 {
+    public class ItemExchange : UnityEngine.MonoBehaviour
+    {
+        public enum ExchangeGroup { Cosmetic, Emote }
+        public static int[] EmoteTabs = new int[] { 7 };
+        public static int LastOpenedTab = -1;
+        public static ExchangeGroup LastRequestedGroup;
+        public static int CanFillCalls;
+        public bool HasItemsSlotted { get; set; }
+        public bool CanFillResult;
+        public void OpenTab(int index) { LastOpenedTab = index; }
+        public bool CanFillExchangeWithDuplicates(ExchangeGroup group, out int quality) { LastRequestedGroup = group; CanFillCalls++; quality = 0; return CanFillResult; }
+    }
     public class PlayerPrefsToggle : UnityEngine.MonoBehaviour
     {
         private string _playerPrefsKey;
