@@ -6,8 +6,8 @@ namespace UnityEngine {
         public static T FindObjectOfType<T>() where T : Object { return null; }
         public static T[] FindObjectsOfType<T>(bool inactive) where T : Object { return null; }
     }
-    public class GameObject : Object { public GameObject(string name, params Type[] components) {} public Transform transform { get { return null; } } public bool activeSelf { get { return true; } } public void SetActive(bool value) {} public T GetComponent<T>() { return default(T); } public T AddComponent<T>() where T : Component { return default(T); } }
-    public class Component : Object { public GameObject gameObject { get { return null; } } public Transform transform { get { return null; } } public T GetComponent<T>() { return default(T); } }
+    public class GameObject : Object { public GameObject(string name, params Type[] components) {} public Transform transform { get { return null; } } public bool activeSelf { get { return true; } } public void SetActive(bool value) {} public Component GetComponent(Type type) { return null; } public Component AddComponent(Type type) { return null; } public T GetComponent<T>() { return default(T); } public T AddComponent<T>() where T : Component { return default(T); } }
+    public class Component : Object { public GameObject gameObject { get { return null; } } public Transform transform { get { return null; } } public Component GetComponent(Type type) { return null; } public T GetComponent<T>() { return default(T); } }
     public class MonoBehaviour : Component { }
     public class Transform : Component { public Transform parent { get { return null; } } public void SetParent(Transform parent, bool worldPositionStays) {} public Transform Find(string path) { return null; } public int GetSiblingIndex() { return 0; } public void SetSiblingIndex(int index) {} }
     public class RectTransform : Transform { public Vector2 anchorMin { get; set; } public Vector2 anchorMax { get; set; } public Vector2 pivot { get; set; } public Vector2 anchoredPosition { get; set; } public Vector2 sizeDelta { get; set; } }

@@ -42,6 +42,8 @@ namespace BongoCat {
         private static float __BongoClaim_NextRefresh_v1;
         private static GameObject __BongoClaim_ExchangeRow_v1;
         private static GameObject __BongoClaim_ExchangeIcon_v1;
+        private static bool __BongoClaim_ThemeApplied_v1;
+        private static float __BongoClaim_NextThemeProbe_v1;
         private static bool __BongoClaim_AutoExchange_v1;
         private static bool __BongoClaim_ExchangeInFlight_v1;
         private static float __BongoClaim_NextExchange_v1;
@@ -84,6 +86,76 @@ namespace BongoCat {
             __BongoClaim_ExchangeStatus_v1 = __BongoClaim_AutoExchange_v1 ? "ACTIVO | esperando" : (__BongoClaim_ExchangeInFlight_v1 ? "DESACTIVADO | terminando intercambio" : "DESACTIVADO");
             __BongoClaim_SetLabel_v1(__BongoClaim_ExchangeRow_v1, __BongoClaim_ExchangeLabel_v1());
         }
+        private static Component __BongoClaim_FindThemedSibling_v1(Transform parent, Type themedType, GameObject exclude) {
+            if (parent == null || themedType == null) return null;
+            Component fallback = null;
+            foreach (MonoBehaviour candidate in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>(true))
+                if (candidate && candidate.gameObject != exclude && candidate.GetType() == themedType) {
+                    if (candidate.transform.parent == parent) return candidate;
+                    if (fallback == null) fallback = candidate;
+                }
+            return fallback;
+        }
+        private static void __BongoClaim_CopyThemeFields_v1(Component source, Component destination, string[] fields) {
+            if (!source || !destination) return;
+            foreach (string name in fields) {
+                FieldInfo from = source.GetType().GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                FieldInfo to = destination.GetType().GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (from != null && to != null) to.SetValue(destination, from.GetValue(source));
+            }
+        }
+        private static void __BongoClaim_RefreshTheme_v1(Component themed) {
+            if (!themed) return;
+            Type managerType = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.UiThemeManager");
+            if (managerType == null) return;
+            var instanceProperty = managerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+            object manager = instanceProperty == null ? null : instanceProperty.GetValue(null, null);
+            if (manager == null) return;
+            var redraw = managerType.GetMethod("Redraw", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { themed.GetType().BaseType }, null);
+            if (redraw == null) foreach (MethodInfo candidate in managerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+                if (candidate.Name == "Redraw" && candidate.GetParameters().Length == 1) { redraw = candidate; break; }
+            if (redraw != null) redraw.Invoke(manager, new object[] { themed });
+        }
+        private static void __BongoClaim_ApplyNativeTheme_v1(Component arrow, GameObject icon, Button button, TMP_Text label) {
+            if (__BongoClaim_ThemeApplied_v1 || !arrow || !icon || !button || !label || Time.unscaledTime < __BongoClaim_NextThemeProbe_v1) return;
+            __BongoClaim_NextThemeProbe_v1 = Time.unscaledTime + 1f;
+            Type gameAssembly = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.ThemedButton");
+            Type iconThemeType = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.ThemedIconButton");
+            Component source = gameAssembly == null ? null : arrow.GetComponent(gameAssembly);
+            if (!source && gameAssembly != null) source = __BongoClaim_FindThemedSibling_v1(arrow.transform.parent, gameAssembly, icon);
+            if (source) {
+                Component target = icon.GetComponent(gameAssembly);
+                if (!target) target = icon.AddComponent(gameAssembly);
+                __BongoClaim_CopyThemeFields_v1(source, target, new string[] { "_normalSprite", "_highlightedSprite", "_pressedSprite", "_selectedSprite", "_disabledSprite", "_iconDefaultColor", "_iconHoverColor", "_iconSelectedColor" });
+                FieldInfo sourceIconField = source.GetType().GetField("_iconColor", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                FieldInfo targetIconField = target.GetType().GetField("_iconColor", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                Component sourceIcon = sourceIconField == null ? null : sourceIconField.GetValue(source) as Component;
+                if (sourceIcon && targetIconField != null) {
+                    Type iconColorType = sourceIcon.GetType();
+                    Component targetIcon = icon.GetComponent(iconColorType);
+                    if (!targetIcon) targetIcon = icon.AddComponent(iconColorType);
+                    __BongoClaim_CopyThemeFields_v1(sourceIcon, targetIcon, new string[] { "DefaultColor", "HoverColor", "SelectedColor" });
+                    FieldInfo graphic = iconColorType.GetField("_icon", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (graphic != null) graphic.SetValue(targetIcon, label);
+                    FieldInfo buttonField = iconColorType.GetField("_button", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (buttonField != null) buttonField.SetValue(targetIcon, button);
+                    targetIconField.SetValue(target, targetIcon);
+                }
+                __BongoClaim_RefreshTheme_v1(target);
+                __BongoClaim_ThemeApplied_v1 = true;
+                return;
+            }
+            if (iconThemeType == null) return;
+            source = arrow.GetComponent(iconThemeType);
+            if (!source) source = __BongoClaim_FindThemedSibling_v1(arrow.transform.parent, iconThemeType, icon);
+            if (source) {
+                Component target = icon.GetComponent(iconThemeType);
+                if (!target) target = icon.AddComponent(iconThemeType);
+                __BongoClaim_CopyThemeFields_v1(source, target, new string[] { "_normalColor", "_highlightedColor", "_pressedColor", "_selectedColor", "_disabledColor" });
+                __BongoClaim_RefreshTheme_v1(target);
+                __BongoClaim_ThemeApplied_v1 = true;
+            }
+        }
         private static void __BongoClaim_EnsureExchangeIcon_v1(object exchange) {
             var component = exchange as Component;
             if (!component) return;
@@ -96,6 +168,8 @@ namespace BongoCat {
             if (existing) __BongoClaim_ExchangeIcon_v1 = existing.gameObject;
             if (!__BongoClaim_ExchangeIcon_v1) {
                 var icon = new GameObject("BongoClaim_AutoEmojiExchange", typeof(RectTransform));
+                __BongoClaim_ThemeApplied_v1 = false;
+                __BongoClaim_NextThemeProbe_v1 = 0f;
                 var rect = icon.GetComponent<RectTransform>();
                 icon.transform.SetParent(parent, false);
                 var arrowRect = arrow.GetComponent<RectTransform>();
@@ -129,6 +203,7 @@ namespace BongoCat {
             if (sourceImage) iconImage.color = sourceImage.color;
             var sourceButton = arrow.GetComponent<Button>();
             var iconButton = __BongoClaim_ExchangeIcon_v1.GetComponent<Button>();
+            __BongoClaim_ApplyNativeTheme_v1(arrow, __BongoClaim_ExchangeIcon_v1, iconButton, iconLabel);
             if (sourceButton && iconButton) {
                 var palette = sourceButton.colors;
                 if (__BongoClaim_AutoExchange_v1) palette.normalColor = palette.highlightedColor;

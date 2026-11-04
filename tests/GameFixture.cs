@@ -63,6 +63,7 @@ namespace UnityEngine
         public GameObject() : this("GameObject") { }
         public GameObject(string objectName, params Type[] components) { name = objectName; activeSelf = true; transform = (Transform)AddComponent(typeof(Transform)); foreach (var component in components ?? new Type[0]) if (component != typeof(Transform)) AddComponent(component); }
         public Component AddComponent(Type type) { var component = (Component)Activator.CreateInstance(type); component.Owner = this; Components.Add(component); return component; }
+        public Component GetComponent(Type type) { return Components.Find(c => type.IsAssignableFrom(c.GetType())); }
         public T AddComponent<T>() where T : Component, new() { return (T)AddComponent(typeof(T)); }
         public T GetComponent<T>() where T : Component { return Components.Find(c => c is T) as T; }
         public T GetComponentInChildren<T>(bool includeInactive) where T : Component { var all = GetComponentsInChildren<T>(includeInactive); return all.Length == 0 ? null : all[0]; }
@@ -78,6 +79,7 @@ namespace UnityEngine
         public GameObject gameObject { get { return Owner; } }
         public Transform transform { get { return Owner.transform; } }
         public T GetComponent<T>() where T : Component { return Owner.GetComponent<T>(); }
+        public Component GetComponent(Type type) { return Owner.Components.Find(c => type.IsAssignableFrom(c.GetType())); }
         public override string name { get { return Owner == null ? base.name : Owner.name; } set { if (Owner == null) base.name = value; else Owner.name = value; } }
     }
     public class Behaviour : Component { public Behaviour() { enabled = true; } public bool enabled { get; set; } }

@@ -92,6 +92,11 @@ namespace BongoClaim {
             }
         }
         private static bool Own(string name) { return name.StartsWith(Prefix, StringComparison.Ordinal); }
+        private static bool IsThemeUpgradeHook(string name) {
+            return name == "__BongoClaim_FindThemedSibling_v1" || name == "__BongoClaim_CopyThemeFields_v1"
+                || name == "__BongoClaim_RefreshTheme_v1" || name == "__BongoClaim_ApplyNativeTheme_v1"
+                || name == "__BongoClaim_ThemeApplied_v1" || name == "__BongoClaim_NextThemeProbe_v1";
+        }
         public static void Validate(AssemblyDefinition asm) {
             using (var template = Template()) {
                 var bind = new Binder(asm.MainModule, template.MainModule);
@@ -125,11 +130,13 @@ namespace BongoClaim {
         }
         public static bool IsInstalled(AssemblyDefinition asm) {
             using (var template = Template()) {
+                var shop = asm.MainModule.Types.SingleOrDefault(t => t.FullName == "BongoCat.Shop");
+                bool currentThemePatch = shop != null && shop.Methods.Any(m => m.Name == PatchEngine.Marker);
                 foreach (var source in template.MainModule.GetTypes()) {
-                    var members = source.Methods.Where(m => Own(m.Name) && m.HasBody && m.Name != "__BongoClaim_CreateActionRow_v1" && m.Name != "__BongoClaim_GetRow_v1").ToArray();
+                    var members = source.Methods.Where(m => Own(m.Name) && m.HasBody && m.Name != "__BongoClaim_CreateActionRow_v1" && m.Name != "__BongoClaim_GetRow_v1" && (currentThemePatch || !IsThemeUpgradeHook(m.Name))).ToArray();
                     if (members.Length == 0) continue;
                     var target = asm.MainModule.GetTypes().SingleOrDefault(t => t.FullName == source.FullName);
-                    if (target == null || members.Any(m => target.Methods.Count(t => t.Name == m.Name && t.HasBody) != 1) || source.Fields.Where(f => Own(f.Name)).Any(f => target.Fields.Count(t => t.Name == f.Name) != 1)) return false;
+                    if (target == null || members.Any(m => target.Methods.Count(t => t.Name == m.Name && t.HasBody) != 1) || source.Fields.Where(f => Own(f.Name) && (currentThemePatch || !IsThemeUpgradeHook(f.Name))).Any(f => target.Fields.Count(t => t.Name == f.Name) != 1)) return false;
                 }
                 var settings = asm.MainModule.GetTypes().Single(t => t.FullName == "BongoCat.SettingsManager");
                 var main = asm.MainModule.GetTypes().Single(t => t.FullName == "BongoCat.MainCat");
