@@ -1,3 +1,6 @@
+> **Community fork by [pilahito](https://github.com/pilahito).** This repository is derived from [NH4OH-35/bongo-cat-auto-chest](https://github.com/NH4OH-35/bongo-cat-auto-chest), whose original author and MIT license remain credited in [`LICENSE`](LICENSE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). This fork currently adds community contribution guidance; it does not yet include an AI or emoji API. See [CONTRIBUTING.md](CONTRIBUTING.md) for the proposed direction and contribution rules.
+
+---
 # Bongo Cat Auto Chest ฅ
 
 **Auto-claim normal and emote chests, open stored tokens, and control your pet score in Bongo Cat.** Set up the Steam launch command once, then use Steam's **Play** button or your usual Steam shortcut. The launch helper checks the patch after Steam updates and before the game starts, and reapplies it when the new build is supported.
