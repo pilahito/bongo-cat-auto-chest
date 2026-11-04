@@ -29,10 +29,12 @@ namespace BongoClaim
 
     public static class PatchEngine
     {
-        public const string Marker = "__BongoClaim_TryClaim_v3";
+        public const string Marker = "__BongoClaim_TryClaim_v4";
+        public const string V3Marker = "__BongoClaim_TryClaim_v3";
         public const string V2Marker = "__BongoClaim_TryClaim_v2";
         public const string LegacyMarker = "__BongoClaim_TryClaim_v1";
-        public const string SettingsMarker = "__BongoClaim_Emotes_v3";
+        public const string SettingsMarker = "__BongoClaim_Emotes_v4";
+        public const string V3SettingsMarker = "__BongoClaim_Emotes_v3";
         public const string V2SettingsMarker = "__BongoClaim_Emotes_v2";
         public const string NormalKey = "BongoClaim_NormalEnabled_v1";
         public const string EmoteKey = "BongoClaim_EmoteEnabled_v1";
@@ -129,17 +131,18 @@ namespace BongoClaim
             shape.Owner = Field(candidates[0], "<>4__this", shop.FullName);
             if (!Calls(shape.Tick, shop.FullName, "OnChestReady") || !Calls(shape.CanBuy, "BongoCat.Pets", "CanSpendPets")) throw new InvalidOperationException("Unsupported game: readiness or affordability checks changed.");
             if (new[] { shape.Ready, shape.Tick }.Any(m => m.Body.ExceptionHandlers.Count != 0)) throw new InvalidOperationException("Unsupported game: timer exception layout changed.");
-            var helpers = shop.Methods.Where(m => m.Name == Marker || m.Name == V2Marker || m.Name == LegacyMarker).ToArray();
+            var helpers = shop.Methods.Where(m => m.Name == Marker || m.Name == V3Marker || m.Name == V2Marker || m.Name == LegacyMarker).ToArray();
             if (helpers.Length > 1) throw new InvalidOperationException("Conflicting Bongo Cat Auto Chest versions were detected. Restore the original first.");
             shape.Helper = helpers.SingleOrDefault();
             if (shape.Helper != null && (shape.Helper.IsStatic || shape.Helper.Parameters.Count != 0 || shape.Helper.ReturnType.FullName != "System.Boolean" || !shape.Helper.HasBody)) throw new InvalidOperationException("An invalid Bongo Cat Auto Chest helper was detected. Restore the original before continuing.");
             if (shape.Helper == null && (Calls(shape.Ready, item.FullName, "Buy") || Calls(shape.Tick, item.FullName, "Buy"))) throw new InvalidOperationException("Another auto-claim mod is already present. Use Steam Verify integrity to restore an original game DLL first.");
             if (shape.Helper != null && (!Calls(shape.Ready, shop.FullName, shape.Helper.Name) || !Calls(shape.Tick, shop.FullName, shape.Helper.Name))) throw new InvalidOperationException("An incomplete Bongo Cat Auto Chest patch was detected. Restore through this tool or Steam before continuing.");
             NativeControlsPatch.Validate(asm);
-            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V2Marker) && !NativeControlsPatch.IsInstalled(asm)) throw new InvalidOperationException("The Bongo Cat Auto Chest settings controls are incomplete. Restore the original before reinstalling.");
-            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V2Marker))
+            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker) && !NativeControlsPatch.IsInstalled(asm)) throw new InvalidOperationException("The Bongo Cat Auto Chest settings controls are incomplete. Restore the original before reinstalling.");
+            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker))
             {
-                var option = shop.Fields.SingleOrDefault(f => f.Name == (shape.Helper.Name == Marker ? SettingsMarker : V2SettingsMarker));
+                var optionName = shape.Helper.Name == Marker ? SettingsMarker : shape.Helper.Name == V3Marker ? V3SettingsMarker : V2SettingsMarker;
+                var option = shop.Fields.SingleOrDefault(f => f.Name == optionName);
                 if (option == null || !option.IsLiteral || !option.HasConstant || option.FieldType.FullName != "System.Boolean") throw new InvalidOperationException("The Bongo Cat Auto Chest default setting is incomplete. Restore the original before reinstalling.");
             }
             OwnedTokensPatch.Validate(asm);
@@ -148,6 +151,12 @@ namespace BongoClaim
                 var charge = item.Methods.SingleOrDefault(m => m.Name == ChargeMarker && m.IsStatic && m.Parameters.Count == 0 && m.ReturnType.FullName == "System.Boolean" && m.HasBody);
                 if (charge == null || !Calls(shape.Buy, item.FullName, ChargeMarker) || !Calls(shape.CanBuy, item.FullName, ChargeMarker) || !NativeControlsPatch.IsExtendedInstalled(asm) || !OwnedTokensPatch.IsInstalled(asm))
                 throw new InvalidOperationException("The Bongo Cat Auto Chest token or pet controls are incomplete. Restore the original before reinstalling.");
+            }
+            else if (shape.Helper != null && shape.Helper.Name == V3Marker)
+            {
+                var charge = item.Methods.SingleOrDefault(m => m.Name == ChargeMarker && m.IsStatic && m.Parameters.Count == 0 && m.ReturnType.FullName == "System.Boolean" && m.HasBody);
+                if (charge == null || !Calls(shape.Buy, item.FullName, ChargeMarker) || !Calls(shape.CanBuy, item.FullName, ChargeMarker) || !NativeControlsPatch.IsExtendedInstalled(asm))
+                    throw new InvalidOperationException("The previous Bongo Cat Auto Chest patch is incomplete. Restore it through the helper or Steam before reinstalling.");
             }
             else if (shape.Helper == null)
             {
@@ -176,12 +185,13 @@ namespace BongoClaim
                 {
                     var shape = GetShape(asm);
                     result.Installed = shape.Helper != null;
-                    result.RuntimeControls = result.Installed && (shape.Helper.Name == Marker || shape.Helper.Name == V2Marker);
+                    result.RuntimeControls = result.Installed && (shape.Helper.Name == Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker);
                     result.OwnedTokenControls = result.Installed && shape.Helper.Name == Marker;
-                    var setting = shape.Shop.Fields.SingleOrDefault(f => f.Name == (result.OwnedTokenControls ? SettingsMarker : result.RuntimeControls ? V2SettingsMarker : "__BongoClaim_Emotes_v1"));
+                    var settingName = !result.Installed ? "__BongoClaim_Emotes_v1" : shape.Helper.Name == Marker ? SettingsMarker : shape.Helper.Name == V3Marker ? V3SettingsMarker : shape.Helper.Name == V2Marker ? V2SettingsMarker : "__BongoClaim_Emotes_v1";
+                    var setting = shape.Shop.Fields.SingleOrDefault(f => f.Name == settingName);
                     result.Emotes = setting != null && setting.HasConstant && Convert.ToBoolean(setting.Constant);
                     result.Supported = true;
-                    result.Message = result.OwnedTokenControls ? "Installed. Use Settings > General for auto claim, stored tokens and pet controls." : result.Installed ? "Older patch installed. Upgrade to add stored-token and pet controls." : "Compatible chest, inventory and settings controls found. Ready to install.";
+                    result.Message = result.OwnedTokenControls ? "Installed. Use Settings > General for auto claim, stored tokens, pet controls and duplicate emoji exchange." : result.Installed ? "Older patch installed. Upgrade to add current controls." : "Compatible chest, inventory and settings controls found. Ready to install.";
                 }
             }
             catch (Exception ex) { result.Message = ex.Message; }
@@ -352,7 +362,7 @@ namespace BongoClaim
                 replaced = true;
                 if (File.Exists(statePath)) File.Replace(stateTemp, statePath, null); else File.Move(stateTemp, statePath);
                 committedOrRecovered = true;
-                return "Chest and pet controls installed. Start Bongo Cat from Steam, then open Settings > General.";
+                return "Chest, pet and duplicate emoji exchange controls installed. Start Bongo Cat from Steam, then open Settings > General.";
             }
             catch (Exception failure)
             {

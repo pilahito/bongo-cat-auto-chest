@@ -36,7 +36,7 @@ namespace BongoClaim
             var mark = TextLabel("ฅ", 31, Mint); mark.SetBounds(28, 22, 55, 60); Controls.Add(mark);
             var brand = TextLabel("BONGO CAT AUTO CHEST", 18, Color.White); brand.Font = new Font("Segoe UI", 18, FontStyle.Bold); brand.SetBounds(91, 28, 390, 35); Controls.Add(brand);
             var subtitle = TextLabel("Your cat keeps playing. Your chests get claimed.", 10, Muted); subtitle.SetBounds(92, 66, 490, 24); Controls.Add(subtitle);
-            var badge = TextLabel("WINDOWS  /  v1.4", 8, Mint); badge.SetBounds(520, 34, 125, 22); Controls.Add(badge);
+            var badge = TextLabel("WINDOWS  /  v1.5", 8, Mint); badge.SetBounds(520, 34, 125, 22); Controls.Add(badge);
             var rule = new Panel { BackColor = PanelColor }; rule.SetBounds(30, 110, 610, 1); Controls.Add(rule);
             var heading = TextLabel("01   FIND YOUR GAME", 9, Muted); heading.SetBounds(30, 134, 400, 23); Controls.Add(heading);
             folder = new TextBox { BackColor = PanelColor, ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, AccessibleName = "Bongo Cat game folder" }; folder.SetBounds(30, 168, 493, 32); Controls.Add(folder);

@@ -6,7 +6,7 @@ Thanks for considering a contribution to this community fork of [NH4OH-35/bongo-
 
 The existing code is by NH4OH-35 and is distributed under the MIT License. This fork preserves the upstream `LICENSE` and third-party notices. Changes made in this fork should be described as fork contributions; do not imply that the original project or its code was created by this account.
 
-The repository currently contains the upstream project source plus fork documentation. An AI-facing API and emoji integration are ideas only; neither is implemented or promised. Before proposing code for that direction, open an issue describing the intended client (the user's own model, Steam chat, or an in-game effect), the data flow, and the exact behavior. Do not include API keys, Steam credentials, game assemblies, or other proprietary game files.
+This fork adds an optional control for exchanging duplicate emojis from the game's emote group. It starts off, leaves manual exchange slots untouched, and waits at least three seconds between attempts. The game's `Assembly-CSharp.dll` is proprietary and must never be committed or bundled. Do not include API keys, Steam credentials, game assemblies, or other proprietary game files.
 
 ## Proposing a change
 

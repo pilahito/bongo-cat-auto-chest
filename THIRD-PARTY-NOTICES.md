@@ -39,4 +39,6 @@ The archived [zelda0079/Bongo-Cat-Auto-Claim](https://github.com/zelda0079/Bongo
 
 [morluto/rea](https://github.com/morluto/rea), MIT licensed, was used for local static analysis during development. REA is not a runtime dependency or part of the downloaded package.
 
+[kaankutluturk/autocat](https://github.com/kaankutluturk/autocat) (Copyright (c) 2026 Kaan Kutluturk, MIT License) was consulted as a technical reference for the game's duplicate exchange API and safety checks. This fork's exchange control is an independent implementation; AutoCat source files and binaries are not included.
+
 Bongo Cat, Unity, Steam and their assemblies belong to their respective owners. Releases contain only this tool and its stated dependency. Users supply their own installed game.

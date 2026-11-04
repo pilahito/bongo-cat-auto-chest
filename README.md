@@ -1,11 +1,13 @@
-> **Community fork by [pilahito](https://github.com/pilahito).** This repository is derived from [NH4OH-35/bongo-cat-auto-chest](https://github.com/NH4OH-35/bongo-cat-auto-chest), whose original author and MIT license remain credited in [`LICENSE`](LICENSE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). This fork currently adds community contribution guidance; it does not yet include an AI or emoji API. See [CONTRIBUTING.md](CONTRIBUTING.md) for the proposed direction and contribution rules.
+> **Community fork by [pilahito](https://github.com/pilahito).** Derived from [NH4OH-35/bongo-cat-auto-chest](https://github.com/NH4OH-35/bongo-cat-auto-chest); the original author and MIT license remain credited in [`LICENSE`](LICENSE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). This fork adds an optional, manual-start control for exchanging duplicate emojis. It starts off and only trades the game's emote group. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution rules.
+
+> **Fork build note:** the upstream v1.4 download below does not contain this fork's new feature. Build this repository on Windows with [`build.ps1`](build.ps1); no proprietary Steam or game files are included.
 
 ---
 # Bongo Cat Auto Chest ฅ
 
 **Auto-claim normal and emote chests, open stored tokens, and control your pet score in Bongo Cat.** Set up the Steam launch command once, then use Steam's **Play** button or your usual Steam shortcut. The launch helper checks the patch after Steam updates and before the game starts, and reapplies it when the new build is supported.
 
-[Download Bongo Cat Auto Chest v1.4.0 for Windows](https://github.com/NH4OH-35/bongo-cat-auto-chest/releases/download/v1.4.0/BongoCatAutoChest-v1.4.0-windows.zip) · [All releases](https://github.com/NH4OH-35/bongo-cat-auto-chest/releases) · [Report a problem](https://github.com/NH4OH-35/bongo-cat-auto-chest/issues)
+[Upstream v1.4.0 Windows download (does not include this fork's feature)](https://github.com/NH4OH-35/bongo-cat-auto-chest/releases/download/v1.4.0/BongoCatAutoChest-v1.4.0-windows.zip) · [Upstream releases](https://github.com/NH4OH-35/bongo-cat-auto-chest/releases) · [Fork issues](https://github.com/pilahito/bongo-cat-auto-chest/issues)
 
 ![Bongo Cat Auto Chest v1.2 in Bongo Cat General settings: normal and emote auto-claim, Keep pets, token claim buttons, and pet score editor](docs/game-settings.png)
 
@@ -66,6 +68,17 @@ Leave **Steam and Bongo Cat running** for auto-claim to work. You can close the 
 | Keep pets when claiming | Off | When enabled, normal and emote chest claims do not deduct available pets. |
 
 Saved preferences take precedence over these defaults. A request already sent can finish after you disable its switch. Automatic claims use the game's existing timer and exchange requirements; claims cost pets while **Keep pets when claiming** is off.
+## Exchange duplicate emojis automatically
+
+This fork adds **🔄 Auto exchange duplicate emojis** under **Settings → General**. Click the row to start or stop it. It starts **off** every time the game opens.
+
+When enabled, the helper checks the game's **emote** exchange group and starts an eligible duplicate exchange no more often than once every three seconds. It waits for any exchange already in progress and leaves manually selected exchange slots alone. It never fills or trades the cosmetic group. The game consumes the duplicates in an exchange; turning the switch off cannot cancel a request already sent, but it prevents another one from starting. An unexpected error turns the switch off and shows a stopped status.
+
+The control is in Settings → General; the collection panel and its built-in exchange icon are unchanged.
+
+## Build this fork
+
+On Windows with .NET Framework 4.8 available, run `./build.ps1` from the repository folder. Run `./package.ps1` to create the portable ZIP under `artifacts/`. The scripts compile the helper and package only project files and the pinned Mono.Cecil dependency; they do not need or include Steam credentials or the game's assemblies.
 
 ## 4. Claim stored chest tokens
 

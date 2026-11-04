@@ -1,6 +1,8 @@
 // Only __BongoClaim_ members are transplanted into the installed game's types.
 // Its inventory, purchase callback and Steam stat APIs remain the owners of state.
 using System;
+using System.Collections;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -38,6 +40,13 @@ namespace BongoCat {
         private static bool __BongoClaim_EditingScore_v1;
         private static string __BongoClaim_ScoreBuffer_v1;
         private static float __BongoClaim_NextRefresh_v1;
+        private static GameObject __BongoClaim_ExchangeRow_v1;
+        private static bool __BongoClaim_AutoExchange_v1;
+        private static bool __BongoClaim_ExchangeInFlight_v1;
+        private static float __BongoClaim_NextExchange_v1;
+        private static object[] __BongoClaim_ExchangeItems_v1;
+        private static long[] __BongoClaim_ExchangeAmounts_v1;
+        private static string __BongoClaim_ExchangeStatus_v1 = "OFF";
         private static void __BongoClaim_SetLabel_v1(GameObject row, string text) {
             if (!row) return;
             var label = row.transform.Find("Content/Label").GetComponent<TMP_Text>();
@@ -60,6 +69,148 @@ namespace BongoCat {
             __BongoClaim_NextRefresh_v1 = 0;
             __BongoClaim_SetLabel_v1(__BongoClaim_ScoreRow_v1, "Type score; Enter to save");
         }
+        private static string __BongoClaim_ExchangeLabel_v1() {
+            return "🔄 Auto exchange duplicate emojis: " + __BongoClaim_ExchangeStatus_v1;
+        }
+        private static void __BongoClaim_ToggleExchange_v1() {
+            __BongoClaim_AutoExchange_v1 = !__BongoClaim_AutoExchange_v1;
+            __BongoClaim_NextExchange_v1 = Time.unscaledTime + 3f;
+            __BongoClaim_ExchangeStatus_v1 = __BongoClaim_AutoExchange_v1 ? "ON | waiting" : (__BongoClaim_ExchangeInFlight_v1 ? "OFF | current exchange will finish" : "OFF");
+            __BongoClaim_SetLabel_v1(__BongoClaim_ExchangeRow_v1, __BongoClaim_ExchangeLabel_v1());
+        }
+        private static FieldInfo __BongoClaim_FindField_v1(Type type, string name, bool isStatic) {
+            return type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | (isStatic ? BindingFlags.Static : BindingFlags.Instance));
+        }
+        private static object __BongoClaim_ReadField_v1(object target, string name) {
+            FieldInfo field = __BongoClaim_FindField_v1(target.GetType(), name, false);
+            if (field == null) throw new MissingFieldException(target.GetType().FullName, name);
+            return field.GetValue(target);
+        }
+        private static MethodInfo __BongoClaim_FindMethod_v1(Type type, string name, int parameters) {
+            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                if (method.Name == name && method.GetParameters().Length == parameters) return method;
+            throw new MissingMethodException(type.FullName, name);
+        }
+        private static bool __BongoClaim_ExchangeCanFill_v1(object exchange, object group) {
+            object[] args = new object[] { group, null };
+            return (bool)__BongoClaim_FindMethod_v1(exchange.GetType(), "CanFillExchangeWithDuplicates", 2).Invoke(exchange, args);
+        }
+        private static void __BongoClaim_RememberExchangeSlots_v1(object exchange) {
+            IList slots = (IList)__BongoClaim_ReadField_v1(exchange, "_exchangeSlots");
+            __BongoClaim_ExchangeItems_v1 = new object[slots.Count];
+            __BongoClaim_ExchangeAmounts_v1 = new long[slots.Count];
+            for (int i = 0; i < slots.Count; i++) {
+                object slot = slots[i];
+                __BongoClaim_ExchangeItems_v1[i] = __BongoClaim_ReadField_v1(slot, "ItemSlotted");
+                __BongoClaim_ExchangeAmounts_v1[i] = Convert.ToInt64(__BongoClaim_ReadField_v1(slot, "_slottedAmount"));
+            }
+        }
+        private static bool __BongoClaim_ExchangeSlotsUnchanged_v1(object exchange) {
+            if (__BongoClaim_ExchangeItems_v1 == null) return false;
+            IList slots = (IList)__BongoClaim_ReadField_v1(exchange, "_exchangeSlots");
+            if (slots.Count != __BongoClaim_ExchangeItems_v1.Length) return false;
+            for (int i = 0; i < slots.Count; i++) {
+                object slot = slots[i];
+                if (!System.Object.ReferenceEquals(__BongoClaim_ExchangeItems_v1[i], __BongoClaim_ReadField_v1(slot, "ItemSlotted")) ||
+                    __BongoClaim_ExchangeAmounts_v1[i] != Convert.ToInt64(__BongoClaim_ReadField_v1(slot, "_slottedAmount"))) return false;
+            }
+            return true;
+        }
+        private static void __BongoClaim_ClearOwnedExchangeSlots_v1(object exchange) {
+            if (!__BongoClaim_ExchangeSlotsUnchanged_v1(exchange)) return;
+            IList slots = (IList)__BongoClaim_ReadField_v1(exchange, "_exchangeSlots");
+            foreach (object slot in slots)
+                __BongoClaim_FindMethod_v1(slot.GetType(), "SetItem", 2).Invoke(slot, new object[] { null, 1L });
+            __BongoClaim_FindMethod_v1(exchange.GetType(), "UpdateInteractable", 0).Invoke(exchange, null);
+            __BongoClaim_ExchangeItems_v1 = null;
+            __BongoClaim_ExchangeAmounts_v1 = null;
+        }
+        private static void __BongoClaim_StartEmojiExchange_v1(object exchange, Type exchangeType, object group) {
+            if ((bool)exchangeType.GetProperty("HasItemsSlotted", BindingFlags.Public | BindingFlags.Instance).GetValue(exchange, null)) {
+                __BongoClaim_ExchangeStatus_v1 = "ON | manual slots untouched";
+                return;
+            }
+            FieldInfo tabsField = __BongoClaim_FindField_v1(exchangeType, "EmoteTabs", true);
+            if (tabsField == null) throw new MissingFieldException(exchangeType.FullName, "EmoteTabs");
+            int[] tabs = (int[])tabsField.GetValue(null);
+            if (tabs == null || tabs.Length == 0) throw new InvalidOperationException("No emoji exchange tab is available");
+            __BongoClaim_FindMethod_v1(exchangeType, "OpenTab", 1).Invoke(exchange, new object[] { tabs[0] });
+            if (!__BongoClaim_ExchangeCanFill_v1(exchange, group)) {
+                __BongoClaim_ExchangeStatus_v1 = "ON | no duplicates";
+                return;
+            }
+            __BongoClaim_FindMethod_v1(exchangeType, "SlotDuplicates", 0).Invoke(exchange, null);
+            __BongoClaim_RememberExchangeSlots_v1(exchange);
+            __BongoClaim_FindMethod_v1(exchangeType, "UpdateInteractable", 0).Invoke(exchange, null);
+            int possible = Convert.ToInt32(__BongoClaim_ReadField_v1(exchange, "_possibleExchanges"));
+            if (possible <= 0 || !__BongoClaim_ExchangeSlotsUnchanged_v1(exchange)) {
+                __BongoClaim_ClearOwnedExchangeSlots_v1(exchange);
+                __BongoClaim_ExchangeStatus_v1 = "ON | no duplicates";
+                return;
+            }
+            MethodInfo routineMethod = __BongoClaim_FindMethod_v1(exchangeType, "ExchangeRoutine", 2);
+            IList items = (IList)Activator.CreateInstance(routineMethod.GetParameters()[0].ParameterType);
+            IList slots = (IList)__BongoClaim_ReadField_v1(exchange, "_exchangeSlots");
+            foreach (object slot in slots) {
+                object item = __BongoClaim_ReadField_v1(slot, "ItemSlotted");
+                if (item != null) items.Add(item);
+            }
+            if (items.Count == 0) {
+                __BongoClaim_ClearOwnedExchangeSlots_v1(exchange);
+                __BongoClaim_ExchangeStatus_v1 = "ON | no duplicates";
+                return;
+            }
+            IEnumerator routine = (IEnumerator)routineMethod.Invoke(exchange, new object[] { items, possible });
+            MethodInfo startCoroutine = exchangeType.GetMethod("StartCoroutine", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(IEnumerator) }, null);
+            if (startCoroutine == null) throw new MissingMethodException(exchangeType.FullName, "StartCoroutine");
+            startCoroutine.Invoke(exchange, new object[] { routine });
+            __BongoClaim_ExchangeInFlight_v1 = true;
+            __BongoClaim_ExchangeStatus_v1 = "ON | exchanging";
+        }
+        private static void __BongoClaim_TickEmojiExchange_v1() {
+            if (__BongoClaim_ExchangeRow_v1)
+                __BongoClaim_SetLabel_v1(__BongoClaim_ExchangeRow_v1, __BongoClaim_ExchangeLabel_v1());
+            if (!__BongoClaim_AutoExchange_v1 || !SteamTools.Interface.IsReady) return;
+            try {
+                if (__BongoClaim_ExchangeInFlight_v1) {
+                    Type pendingType = typeof(SettingsManager).Assembly.GetType("BongoCat.ItemExchange", true);
+                    object pendingExchange = pendingType.GetField("Instance", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+                    if (pendingExchange != null && !(bool)__BongoClaim_ReadField_v1(pendingExchange, "_isExchanging") && !Steam.ChestExchanger.__BongoClaim_IsBusy_v1()) {
+                        __BongoClaim_ClearOwnedExchangeSlots_v1(pendingExchange);
+                        __BongoClaim_ExchangeInFlight_v1 = false;
+                        __BongoClaim_NextExchange_v1 = Time.unscaledTime + 3f;
+                        __BongoClaim_ExchangeStatus_v1 = "ON | waiting";
+                    }
+                }
+                if (__BongoClaim_ExchangeInFlight_v1 || Time.unscaledTime < __BongoClaim_NextExchange_v1) return;
+                __BongoClaim_NextExchange_v1 = Time.unscaledTime + 3f;
+                if (Steam.ChestExchanger.__BongoClaim_IsBusy_v1()) {
+                    __BongoClaim_ExchangeStatus_v1 = "ON | waiting for inventory";
+                    return;
+                }
+                Type exchangeType = typeof(SettingsManager).Assembly.GetType("BongoCat.ItemExchange", true);
+                object exchange = exchangeType.GetField("Instance", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+                if (exchange == null) { __BongoClaim_ExchangeStatus_v1 = "ON | waiting for collection"; return; }
+                Type groupType = exchangeType.GetNestedType("Group", BindingFlags.Public | BindingFlags.NonPublic);
+                object group = Enum.Parse(groupType, "Emote");
+                if (__BongoClaim_ExchangeCanFill_v1(exchange, group)) __BongoClaim_StartEmojiExchange_v1(exchange, exchangeType, group);
+                else __BongoClaim_ExchangeStatus_v1 = "ON | no duplicates";
+            } catch {
+                try {
+                    if (!__BongoClaim_ExchangeInFlight_v1 && !Steam.ChestExchanger.__BongoClaim_IsBusy_v1()) {
+                        Type failedType = typeof(SettingsManager).Assembly.GetType("BongoCat.ItemExchange", false);
+                        if (failedType != null) {
+                            FieldInfo instanceField = __BongoClaim_FindField_v1(failedType, "Instance", true);
+                            object failedExchange = instanceField == null ? null : instanceField.GetValue(null);
+                            if (failedExchange != null) __BongoClaim_ClearOwnedExchangeSlots_v1(failedExchange);
+                        }
+                    }
+                } catch { }
+                __BongoClaim_AutoExchange_v1 = false;
+                __BongoClaim_ExchangeInFlight_v1 = false;
+                __BongoClaim_ExchangeStatus_v1 = "OFF | stopped after error";
+            }
+        }
         public void __BongoClaim_CreateTokenActions_v1() {
             var autoStart = UnityEngine.Object.FindObjectOfType<SetAutoStart>();
             if (!autoStart || !ShowChestPopup) return;
@@ -70,6 +221,7 @@ namespace BongoCat {
             __BongoClaim_NormalTokensRow_v1 = PlayerPrefsToggle.__BongoClaim_CreateActionRow_v1(ShowChestPopup, parent, "BongoClaim_NormalTokens", "Normal tokens: loading", "Consume one owned normal chest token, even during the local countdown. F11 opens one while the menu is open. No new tokens are generated.", __BongoClaim_ClaimNormal_v1, index);
             __BongoClaim_EmoteTokensRow_v1 = PlayerPrefsToggle.__BongoClaim_CreateActionRow_v1(ShowChestPopup, parent, "BongoClaim_EmoteTokens", "Emote tokens: loading", "Consume one owned emote chest token, even during the local countdown. Insert opens one while the menu is open. Each click opens one chest.", __BongoClaim_ClaimEmote_v1, index + 1);
             __BongoClaim_ScoreRow_v1 = PlayerPrefsToggle.__BongoClaim_CreateActionRow_v1(ShowChestPopup, parent, "BongoClaim_EditScore", "Edit pet score", "Click, type a nonnegative whole number, then Enter to save or Escape to cancel. Backspace deletes. Changes available pets and saves through Steam stats; lifetime achievement taps and total spent are preserved. F10 also starts editing while the menu is open.", __BongoClaim_EditScore_v1, index + 2);
+            __BongoClaim_ExchangeRow_v1 = PlayerPrefsToggle.__BongoClaim_CreateActionRow_v1(ShowChestPopup, parent, "BongoClaim_EmojiExchange", __BongoClaim_ExchangeLabel_v1(), "When enabled, exchange eligible duplicate emojis only, no more than once every 3 seconds. Manual exchange selections are left alone. The setting starts off each time the game opens.", __BongoClaim_ToggleExchange_v1, index + 3);
             __BongoClaim_NextRefresh_v1 = 0;
         }
         private static void __BongoClaim_RefreshToken_v1(GameObject row, string name, long quantity, bool ready) {
@@ -78,6 +230,7 @@ namespace BongoCat {
             row.GetComponent<Button>().interactable = ready && quantity > 0 && !Steam.ChestExchanger.__BongoClaim_IsBusy_v1() && !__BongoClaim_EditingScore_v1;
         }
         public static bool __BongoClaim_FeatureTick_v1(bool menuOpen) {
+            __BongoClaim_TickEmojiExchange_v1();
             bool editing = __BongoClaim_EditingScore_v1;
             if (!menuOpen) { __BongoClaim_EditingScore_v1 = false; __BongoClaim_NextRefresh_v1 = 0; }
             if (menuOpen && Application.isFocused && !Helper.InputFieldCache.FocusingInputField) {
