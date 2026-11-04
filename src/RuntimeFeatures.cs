@@ -100,9 +100,9 @@ namespace BongoCat {
                 icon.transform.SetParent(parent, false);
                 var arrowRect = arrow.GetComponent<RectTransform>();
                 rect.anchorMin = arrowRect.anchorMin; rect.anchorMax = arrowRect.anchorMax; rect.pivot = arrowRect.pivot;
-                rect.sizeDelta = arrowRect.sizeDelta;
-                rect.anchoredPosition = new Vector2(arrowRect.anchoredPosition.x + (arrowRect.sizeDelta.x + 4f) * 3f, arrowRect.anchoredPosition.y);
-                var image = icon.AddComponent<Image>(); image.color = new Color(0.18f, 0.22f, 0.25f, 0.96f);
+                rect.sizeDelta = new Vector2(Math.Max(24f, arrowRect.sizeDelta.x), Math.Max(24f, arrowRect.sizeDelta.y));
+                rect.anchoredPosition = new Vector2(arrowRect.anchoredPosition.x + (arrowRect.sizeDelta.x + 4f) * 4f, arrowRect.anchoredPosition.y);
+                var image = icon.AddComponent<Image>(); image.color = new Color(0.30f, 0.17f, 0.23f, 1f);
                 var button = icon.AddComponent<Button>(); button.onClick.AddListener(__BongoClaim_ToggleExchange_v1);
                 var labelObject = new GameObject("Label", typeof(RectTransform)); labelObject.transform.SetParent(icon.transform, false);
                 var labelRect = labelObject.GetComponent<RectTransform>(); labelRect.anchorMin = new Vector2(0f, 0f); labelRect.anchorMax = new Vector2(1f, 1f); labelRect.sizeDelta = new Vector2(0f, 0f);
@@ -110,21 +110,21 @@ namespace BongoCat {
                 __BongoClaim_ExchangeIcon_v1 = icon;
             }
             bool visible = (bool)exchangeType.GetProperty("IsVisible", BindingFlags.Public | BindingFlags.Instance).GetValue(exchange, null);
-            int desiredIndex = arrow.transform.GetSiblingIndex() + 3;
+            int desiredIndex = arrow.transform.GetSiblingIndex() + 4;
             if (__BongoClaim_ExchangeIcon_v1.transform.GetSiblingIndex() != desiredIndex) __BongoClaim_ExchangeIcon_v1.transform.SetSiblingIndex(desiredIndex);
             var placedRect = __BongoClaim_ExchangeIcon_v1.GetComponent<RectTransform>();
             var sourceRect = arrow.GetComponent<RectTransform>();
             placedRect.anchorMin = sourceRect.anchorMin; placedRect.anchorMax = sourceRect.anchorMax; placedRect.pivot = sourceRect.pivot;
-            placedRect.sizeDelta = sourceRect.sizeDelta;
-            placedRect.anchoredPosition = new Vector2(sourceRect.anchoredPosition.x + (sourceRect.sizeDelta.x + 4f) * 3f, sourceRect.anchoredPosition.y);
+            placedRect.sizeDelta = new Vector2(Math.Max(24f, sourceRect.sizeDelta.x), Math.Max(24f, sourceRect.sizeDelta.y));
+            placedRect.anchoredPosition = new Vector2(sourceRect.anchoredPosition.x + (sourceRect.sizeDelta.x + 4f) * 4f, sourceRect.anchoredPosition.y);
             __BongoClaim_ExchangeIcon_v1.SetActive(visible);
             var iconLabel = __BongoClaim_ExchangeIcon_v1.transform.Find("Label").GetComponent<TMP_Text>();
             var iconImage = __BongoClaim_ExchangeIcon_v1.GetComponent<Image>();
             float iconHeight = placedRect.sizeDelta.y;
-            iconLabel.text = __BongoClaim_AutoExchange_v1 ? "⟳" : "↻";
-            iconLabel.fontSize = Math.Max(16f, Math.Min(27f, iconHeight * 0.72f));
-            iconLabel.color = __BongoClaim_AutoExchange_v1 ? new Color(0.48f, 1f, 0.68f, 1f) : new Color(0.88f, 0.9f, 0.92f, 1f);
-            iconImage.color = __BongoClaim_AutoExchange_v1 ? new Color(0.12f, 0.32f, 0.24f, 1f) : new Color(0.18f, 0.22f, 0.25f, 0.96f);
+            iconLabel.text = "♥";
+            iconLabel.fontSize = Math.Max(18f, Math.Min(27f, iconHeight * 0.82f));
+            iconLabel.color = __BongoClaim_AutoExchange_v1 ? new Color(1f, 0.88f, 0.94f, 1f) : new Color(1f, 0.54f, 0.70f, 1f);
+            iconImage.color = __BongoClaim_AutoExchange_v1 ? new Color(0.66f, 0.20f, 0.39f, 1f) : new Color(0.30f, 0.17f, 0.23f, 1f);
         }
         private static FieldInfo __BongoClaim_FindField_v1(Type type, string name, bool isStatic) {
             return type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | (isStatic ? BindingFlags.Static : BindingFlags.Instance));
