@@ -36,7 +36,7 @@ namespace BongoClaim
             var mark = TextLabel("ฅ", 31, Mint); mark.SetBounds(28, 22, 55, 60); Controls.Add(mark);
             var brand = TextLabel("BONGO CAT: COFRES AUTOMÁTICOS", 17, Color.White); brand.Font = new Font("Segoe UI", 17, FontStyle.Bold); brand.SetBounds(91, 28, 490, 35); Controls.Add(brand);
             var subtitle = TextLabel("Tu gato sigue jugando. Tus cofres se reclaman solos.", 10, Muted); subtitle.SetBounds(92, 66, 510, 24); Controls.Add(subtitle);
-            var badge = TextLabel("WINDOWS  /  v1.9", 8, Mint); badge.SetBounds(520, 34, 125, 22); Controls.Add(badge);
+            var badge = TextLabel("WINDOWS  /  v1.10", 8, Mint); badge.SetBounds(520, 34, 125, 22); Controls.Add(badge);
             var rule = new Panel { BackColor = PanelColor }; rule.SetBounds(30, 110, 610, 1); Controls.Add(rule);
             var heading = TextLabel("01   SELECCIONA EL JUEGO", 9, Muted); heading.SetBounds(30, 134, 400, 23); Controls.Add(heading);
             folder = new TextBox { BackColor = PanelColor, ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, AccessibleName = "Carpeta del juego Bongo Cat" }; folder.SetBounds(30, 168, 493, 32); Controls.Add(folder);
