@@ -1,6 +1,6 @@
 > **Community fork by [pilahito](https://github.com/pilahito).** Derived from [NH4OH-35/bongo-cat-auto-chest](https://github.com/NH4OH-35/bongo-cat-auto-chest); the original author and MIT license remain credited in [`LICENSE`](LICENSE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). This fork adds an optional automatic duplicate-emoji exchange button beside the collection's fill arrow. It starts off and only trades the game's emote group. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution rules.
 
-> **Fork build note:** the upstream v1.4 download below does not contain this fork's new feature. Build this repository on Windows with [`build.ps1`](build.ps1); no proprietary Steam or game files are included.
+> **Fork build note:** upstream downloads do not contain this fork's new feature. Build this repository on Windows with [`build.ps1`](build.ps1); no proprietary Steam or game files are included.
 
 ---
 # Bongo Cat Auto Chest ฅ

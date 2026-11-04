@@ -67,7 +67,7 @@ namespace BongoClaim
                             Console.WriteLine(StartupLauncher.Launch(args[1]));
                             return 0;
                         default:
-                            Console.WriteLine("Bongo Cat Auto Cofres 1.6.0 — ejecuta sin argumentos para abrir la aplicación.");
+                            Console.WriteLine("Bongo Cat Auto Cofres 1.7.0 — ejecuta sin argumentos para abrir la aplicación.");
                             Console.WriteLine("Commands: --inspect, --patch-copy, --install, --restore, --enable-startup, --disable-startup, --launch, --steam-command, --steam-launch.");
                             Console.WriteLine("Optional: --normal-only starts emote claims disabled; --emotes is accepted for compatibility.");
                             Console.WriteLine("After installation, use Bongo Cat Settings > General for saved toggles, owned tokens and pet controls.");

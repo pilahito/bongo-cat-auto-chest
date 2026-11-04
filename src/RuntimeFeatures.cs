@@ -110,6 +110,8 @@ namespace BongoCat {
                 __BongoClaim_ExchangeIcon_v1 = icon;
             }
             bool visible = (bool)exchangeType.GetProperty("IsVisible", BindingFlags.Public | BindingFlags.Instance).GetValue(exchange, null);
+            int desiredIndex = arrow.transform.GetSiblingIndex() + 1;
+            if (__BongoClaim_ExchangeIcon_v1.transform.GetSiblingIndex() != desiredIndex) __BongoClaim_ExchangeIcon_v1.transform.SetSiblingIndex(desiredIndex);
             var placedRect = __BongoClaim_ExchangeIcon_v1.GetComponent<RectTransform>();
             var sourceRect = arrow.GetComponent<RectTransform>();
             placedRect.anchorMin = sourceRect.anchorMin; placedRect.anchorMax = sourceRect.anchorMax; placedRect.pivot = sourceRect.pivot;
