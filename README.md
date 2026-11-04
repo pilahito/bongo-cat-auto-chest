@@ -1,4 +1,4 @@
-> **Community fork by [pilahito](https://github.com/pilahito).** Derived from [NH4OH-35/bongo-cat-auto-chest](https://github.com/NH4OH-35/bongo-cat-auto-chest); the original author and MIT license remain credited in [`LICENSE`](LICENSE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). This fork adds an optional, manual-start control for exchanging duplicate emojis. It starts off and only trades the game's emote group. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution rules.
+> **Community fork by [pilahito](https://github.com/pilahito).** Derived from [NH4OH-35/bongo-cat-auto-chest](https://github.com/NH4OH-35/bongo-cat-auto-chest); the original author and MIT license remain credited in [`LICENSE`](LICENSE) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). This fork adds an optional automatic duplicate-emoji exchange button beside the collection's fill arrow. It starts off and only trades the game's emote group. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution rules.
 
 > **Fork build note:** the upstream v1.4 download below does not contain this fork's new feature. Build this repository on Windows with [`build.ps1`](build.ps1); no proprietary Steam or game files are included.
 
@@ -68,13 +68,13 @@ Leave **Steam and Bongo Cat running** for auto-claim to work. You can close the 
 | Keep pets when claiming | Off | When enabled, normal and emote chest claims do not deduct available pets. |
 
 Saved preferences take precedence over these defaults. A request already sent can finish after you disable its switch. Automatic claims use the game's existing timer and exchange requirements; claims cost pets while **Keep pets when claiming** is off.
-## Exchange duplicate emojis automatically
+## Intercambio automático de emojis duplicados
 
-This fork adds **🔄 Auto exchange duplicate emojis** under **Settings → General**. Click the row to start or stop it. It starts **off** every time the game opens.
+Pulsa el botón **↻** que aparece junto a la flecha de rellenado de duplicados en el panel de colección para activar o detener el intercambio automático. También puedes usar **Ajustes → General → 🔄 Intercambio automático de emojis duplicados**. Empieza desactivado cada vez que abres el juego.
 
-When enabled, the helper checks the game's **emote** exchange group and starts an eligible duplicate exchange no more often than once every three seconds. It waits for any exchange already in progress and leaves manually selected exchange slots alone. It never fills or trades the cosmetic group. The game consumes the duplicates in an exchange; turning the switch off cannot cancel a request already sent, but it prevents another one from starting. An unexpected error turns the switch off and shows a stopped status.
+Cuando está activado, el mod revisa el grupo de intercambio de **emojis** e inicia los intercambios elegibles con un intervalo mínimo de tres segundos. Espera a que termine cualquier intercambio en curso y respeta los espacios que hayas rellenado manualmente. No rellena ni intercambia el grupo de cosméticos. El juego consume los duplicados al intercambiarlos; apagar el botón no cancela una petición ya enviada, pero evita que empiece otra. Si ocurre un error, el botón se apaga y muestra el estado.
 
-The control is in Settings → General; the collection panel and its built-in exchange icon are unchanged.
+La reclamación automática de cofres normales y de emoji se configura por separado en **Ajustes → General**.
 
 ## Build this fork
 

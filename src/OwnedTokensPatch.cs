@@ -172,7 +172,17 @@ namespace BongoClaim {
                         else operand = bind.Operand(operand);
                         instructions[i].Operand = operand;
                     }
-                    if (source.Body.ExceptionHandlers.Count != 0) throw new InvalidOperationException("Unexpected source runtime exception layout.");
+                    foreach (var sourceHandler in source.Body.ExceptionHandlers) {
+                        var handler = new ExceptionHandler(sourceHandler.HandlerType) {
+                            CatchType = sourceHandler.CatchType == null ? null : bind.Type(sourceHandler.CatchType),
+                            TryStart = instructions[sourceHandler.TryStart],
+                            TryEnd = sourceHandler.TryEnd == null ? null : instructions[sourceHandler.TryEnd],
+                            HandlerStart = instructions[sourceHandler.HandlerStart],
+                            HandlerEnd = sourceHandler.HandlerEnd == null ? null : instructions[sourceHandler.HandlerEnd],
+                            FilterStart = sourceHandler.FilterStart == null ? null : instructions[sourceHandler.FilterStart]
+                        };
+                        target.Body.ExceptionHandlers.Add(handler);
+                    }
                 }
             }
             var module = asm.MainModule;

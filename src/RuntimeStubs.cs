@@ -6,18 +6,21 @@ namespace UnityEngine {
         public static T FindObjectOfType<T>() where T : Object { return null; }
         public static T[] FindObjectsOfType<T>(bool inactive) where T : Object { return null; }
     }
-    public class GameObject : Object { public Transform transform { get { return null; } } public bool activeSelf { get { return true; } } public T GetComponent<T>() { return default(T); } }
+    public class GameObject : Object { public GameObject(string name, params Type[] components) {} public Transform transform { get { return null; } } public bool activeSelf { get { return true; } } public void SetActive(bool value) {} public T GetComponent<T>() { return default(T); } public T AddComponent<T>() where T : Component { return default(T); } }
     public class Component : Object { public GameObject gameObject { get { return null; } } public Transform transform { get { return null; } } public T GetComponent<T>() { return default(T); } }
     public class MonoBehaviour : Component { }
-    public class Transform : Component { public Transform parent { get { return null; } } public Transform Find(string path) { return null; } public int GetSiblingIndex() { return 0; } }
+    public class Transform : Component { public Transform parent { get { return null; } } public void SetParent(Transform parent, bool worldPositionStays) {} public Transform Find(string path) { return null; } public int GetSiblingIndex() { return 0; } }
+    public class RectTransform : Transform { public Vector2 anchorMin { get; set; } public Vector2 anchorMax { get; set; } public Vector2 pivot { get; set; } public Vector2 anchoredPosition { get; set; } public Vector2 sizeDelta { get; set; } }
+    public struct Vector2 { public float x, y; public Vector2(float x, float y) { this.x=x; this.y=y; } }
+    public struct Color { public Color(float r, float g, float b, float a) {} public static Color white { get { return new Color(1f,1f,1f,1f); } } }
     public enum KeyCode { Backspace=8, Return=13, Escape=27, Insert=277, F10=291, F11=292, KeypadEnter=271 }
     public static class Input { public static bool GetKeyDown(KeyCode key) { return false; } }
     public static class Application { public static bool isFocused { get { return false; } } }
     public static class Time { public static float unscaledTime { get { return 0; } } }
 }
 namespace UnityEngine.Events { public delegate void UnityAction(); }
-namespace UnityEngine.UI { public class Button : UnityEngine.Component { public bool interactable { get; set; } } }
-namespace TMPro { public class TMP_Text : UnityEngine.Component { public string text { get; set; } } }
+namespace UnityEngine.UI { public class Image : UnityEngine.Component { public UnityEngine.Color color { get; set; } } public class Button : UnityEngine.Component { public bool interactable { get; set; } public ButtonClickedEvent onClick { get { return null; } } public class ButtonClickedEvent { public void AddListener(UnityEngine.Events.UnityAction action) {} } } }
+namespace TMPro { public enum TextAlignmentOptions { Center } public class TMP_Text : UnityEngine.Component { public string text { get; set; } public TextAlignmentOptions alignment { get; set; } public float fontSize { get; set; } public bool raycastTarget { get; set; } public UnityEngine.Color color { get; set; } } public class TextMeshProUGUI : TMP_Text {} }
 namespace Helper { public static class InputFieldCache { public static bool FocusingInputField { get { return false; } } } }
 namespace Heathen.SteamworksIntegration {
     public struct ItemData { public long GetTotalQuantity() { return 0; } }

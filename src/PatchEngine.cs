@@ -29,11 +29,15 @@ namespace BongoClaim
 
     public static class PatchEngine
     {
-        public const string Marker = "__BongoClaim_TryClaim_v4";
+        public const string Marker = "__BongoClaim_TryClaim_v6";
+        public const string V5Marker = "__BongoClaim_TryClaim_v5";
+        public const string V4Marker = "__BongoClaim_TryClaim_v4";
         public const string V3Marker = "__BongoClaim_TryClaim_v3";
         public const string V2Marker = "__BongoClaim_TryClaim_v2";
         public const string LegacyMarker = "__BongoClaim_TryClaim_v1";
-        public const string SettingsMarker = "__BongoClaim_Emotes_v4";
+        public const string SettingsMarker = "__BongoClaim_Emotes_v6";
+        public const string V5SettingsMarker = "__BongoClaim_Emotes_v5";
+        public const string V4SettingsMarker = "__BongoClaim_Emotes_v4";
         public const string V3SettingsMarker = "__BongoClaim_Emotes_v3";
         public const string V2SettingsMarker = "__BongoClaim_Emotes_v2";
         public const string NormalKey = "BongoClaim_NormalEnabled_v1";
@@ -44,7 +48,7 @@ namespace BongoClaim
 
         public static string GameAssembly(string root)
         {
-            if (String.IsNullOrWhiteSpace(root)) throw new InvalidOperationException("Select your BongoCat game folder first.");
+            if (String.IsNullOrWhiteSpace(root)) throw new InvalidOperationException("Selecciona primero la carpeta del juego Bongo Cat.");
             return System.IO.Path.Combine(System.IO.Path.GetFullPath(root), RelativeDll.Replace('/', System.IO.Path.DirectorySeparatorChar));
         }
 
@@ -131,28 +135,34 @@ namespace BongoClaim
             shape.Owner = Field(candidates[0], "<>4__this", shop.FullName);
             if (!Calls(shape.Tick, shop.FullName, "OnChestReady") || !Calls(shape.CanBuy, "BongoCat.Pets", "CanSpendPets")) throw new InvalidOperationException("Unsupported game: readiness or affordability checks changed.");
             if (new[] { shape.Ready, shape.Tick }.Any(m => m.Body.ExceptionHandlers.Count != 0)) throw new InvalidOperationException("Unsupported game: timer exception layout changed.");
-            var helpers = shop.Methods.Where(m => m.Name == Marker || m.Name == V3Marker || m.Name == V2Marker || m.Name == LegacyMarker).ToArray();
+            var helpers = shop.Methods.Where(m => m.Name == Marker || m.Name == V5Marker || m.Name == V4Marker || m.Name == V3Marker || m.Name == V2Marker || m.Name == LegacyMarker).ToArray();
             if (helpers.Length > 1) throw new InvalidOperationException("Conflicting Bongo Cat Auto Chest versions were detected. Restore the original first.");
             shape.Helper = helpers.SingleOrDefault();
             if (shape.Helper != null && (shape.Helper.IsStatic || shape.Helper.Parameters.Count != 0 || shape.Helper.ReturnType.FullName != "System.Boolean" || !shape.Helper.HasBody)) throw new InvalidOperationException("An invalid Bongo Cat Auto Chest helper was detected. Restore the original before continuing.");
             if (shape.Helper == null && (Calls(shape.Ready, item.FullName, "Buy") || Calls(shape.Tick, item.FullName, "Buy"))) throw new InvalidOperationException("Another auto-claim mod is already present. Use Steam Verify integrity to restore an original game DLL first.");
             if (shape.Helper != null && (!Calls(shape.Ready, shop.FullName, shape.Helper.Name) || !Calls(shape.Tick, shop.FullName, shape.Helper.Name))) throw new InvalidOperationException("An incomplete Bongo Cat Auto Chest patch was detected. Restore through this tool or Steam before continuing.");
             NativeControlsPatch.Validate(asm);
-            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker) && !NativeControlsPatch.IsInstalled(asm)) throw new InvalidOperationException("The Bongo Cat Auto Chest settings controls are incomplete. Restore the original before reinstalling.");
-            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker))
+            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V5Marker || shape.Helper.Name == V4Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker) && !NativeControlsPatch.IsInstalled(asm)) throw new InvalidOperationException("The Bongo Cat Auto Chest settings controls are incomplete. Restore the original before reinstalling.");
+            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V5Marker || shape.Helper.Name == V4Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker))
             {
-                var optionName = shape.Helper.Name == Marker ? SettingsMarker : shape.Helper.Name == V3Marker ? V3SettingsMarker : V2SettingsMarker;
+                var optionName = shape.Helper.Name == Marker ? SettingsMarker : shape.Helper.Name == V5Marker ? V5SettingsMarker : shape.Helper.Name == V4Marker ? V4SettingsMarker : shape.Helper.Name == V3Marker ? V3SettingsMarker : V2SettingsMarker;
                 var option = shop.Fields.SingleOrDefault(f => f.Name == optionName);
                 if (option == null || !option.IsLiteral || !option.HasConstant || option.FieldType.FullName != "System.Boolean") throw new InvalidOperationException("The Bongo Cat Auto Chest default setting is incomplete. Restore the original before reinstalling.");
             }
             OwnedTokensPatch.Validate(asm);
-            if (shape.Helper != null && shape.Helper.Name == Marker)
+            if (shape.Helper != null && (shape.Helper.Name == Marker || shape.Helper.Name == V4Marker))
             {
                 var charge = item.Methods.SingleOrDefault(m => m.Name == ChargeMarker && m.IsStatic && m.Parameters.Count == 0 && m.ReturnType.FullName == "System.Boolean" && m.HasBody);
                 if (charge == null || !Calls(shape.Buy, item.FullName, ChargeMarker) || !Calls(shape.CanBuy, item.FullName, ChargeMarker) || !NativeControlsPatch.IsExtendedInstalled(asm) || !OwnedTokensPatch.IsInstalled(asm))
                 throw new InvalidOperationException("The Bongo Cat Auto Chest token or pet controls are incomplete. Restore the original before reinstalling.");
             }
             else if (shape.Helper != null && shape.Helper.Name == V3Marker)
+            {
+                var charge = item.Methods.SingleOrDefault(m => m.Name == ChargeMarker && m.IsStatic && m.Parameters.Count == 0 && m.ReturnType.FullName == "System.Boolean" && m.HasBody);
+                if (charge == null || !Calls(shape.Buy, item.FullName, ChargeMarker) || !Calls(shape.CanBuy, item.FullName, ChargeMarker) || !NativeControlsPatch.IsExtendedInstalled(asm))
+                    throw new InvalidOperationException("The previous Bongo Cat Auto Chest patch is incomplete. Restore it through the helper or Steam before reinstalling.");
+            }
+            else if (shape.Helper != null && shape.Helper.Name == V5Marker)
             {
                 var charge = item.Methods.SingleOrDefault(m => m.Name == ChargeMarker && m.IsStatic && m.Parameters.Count == 0 && m.ReturnType.FullName == "System.Boolean" && m.HasBody);
                 if (charge == null || !Calls(shape.Buy, item.FullName, ChargeMarker) || !Calls(shape.CanBuy, item.FullName, ChargeMarker) || !NativeControlsPatch.IsExtendedInstalled(asm))
@@ -177,7 +187,7 @@ namespace BongoClaim
         private static Inspection Inspect(string path, string dependencies)
         {
             var result = new Inspection { Path = path };
-            if (!File.Exists(path)) { result.Message = "Game DLL not found. Select the folder containing BongoCat.exe."; return result; }
+            if (!File.Exists(path)) { result.Message = "No se encontró el archivo del juego. Selecciona la carpeta que contiene BongoCat.exe."; return result; }
             result.Hash = Hash(path);
             try
             {
@@ -185,13 +195,13 @@ namespace BongoClaim
                 {
                     var shape = GetShape(asm);
                     result.Installed = shape.Helper != null;
-                    result.RuntimeControls = result.Installed && (shape.Helper.Name == Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker);
+                    result.RuntimeControls = result.Installed && (shape.Helper.Name == Marker || shape.Helper.Name == V5Marker || shape.Helper.Name == V4Marker || shape.Helper.Name == V3Marker || shape.Helper.Name == V2Marker);
                     result.OwnedTokenControls = result.Installed && shape.Helper.Name == Marker;
-                    var settingName = !result.Installed ? "__BongoClaim_Emotes_v1" : shape.Helper.Name == Marker ? SettingsMarker : shape.Helper.Name == V3Marker ? V3SettingsMarker : shape.Helper.Name == V2Marker ? V2SettingsMarker : "__BongoClaim_Emotes_v1";
+                    var settingName = !result.Installed ? "__BongoClaim_Emotes_v1" : shape.Helper.Name == Marker ? SettingsMarker : shape.Helper.Name == V5Marker ? V5SettingsMarker : shape.Helper.Name == V4Marker ? V4SettingsMarker : shape.Helper.Name == V3Marker ? V3SettingsMarker : shape.Helper.Name == V2Marker ? V2SettingsMarker : "__BongoClaim_Emotes_v1";
                     var setting = shape.Shop.Fields.SingleOrDefault(f => f.Name == settingName);
                     result.Emotes = setting != null && setting.HasConstant && Convert.ToBoolean(setting.Constant);
                     result.Supported = true;
-                    result.Message = result.OwnedTokenControls ? "Installed. Use Settings > General for auto claim, stored tokens, pet controls and duplicate emoji exchange." : result.Installed ? "Older patch installed. Upgrade to add current controls." : "Compatible chest, inventory and settings controls found. Ready to install.";
+                    result.Message = result.OwnedTokenControls ? "Instalado. Abre Ajustes > General para configurar los cofres automáticos, las fichas, las mascotas y el intercambio de emojis." : result.Installed ? "Hay una versión anterior instalada. Actualiza para añadir los controles nuevos." : "El juego es compatible. Ya puedes instalar los controles.";
                 }
             }
             catch (Exception ex) { result.Message = ex.Message; }
@@ -293,7 +303,7 @@ namespace BongoClaim
                         if (!String.Equals(System.IO.Path.GetDirectoryName(executable), System.IO.Path.GetFullPath(root).TrimEnd(System.IO.Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)) continue;
                     }
                     catch { }
-                    throw new InvalidOperationException("Bongo Cat is running. Exit the game normally, then try again. This tool will not force-close it.");
+                    throw new InvalidOperationException("Bongo Cat está abierto. Cierra el juego normalmente y vuelve a intentarlo. La herramienta no lo cerrará a la fuerza.");
                 }
             }
         }
@@ -332,7 +342,7 @@ namespace BongoClaim
                 if (prior == null || !String.Equals(prior.PatchedHash, current.Hash, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("A patched DLL has no matching backup record. Use Steam Verify integrity, then install again.");
                 source = BackupPath(root, prior.OriginalHash);
                 if (!File.Exists(source) || Hash(source) != prior.OriginalHash) throw new InvalidOperationException("The original backup is missing or damaged. Use Steam Verify integrity.");
-                if (current.OwnedTokenControls) return "Already installed. Use Settings > General in Bongo Cat for auto claim, stored tokens and pet controls.";
+                if (current.OwnedTokenControls) return "Ya está instalado. Abre Ajustes > General en Bongo Cat para configurar la reclamación automática, las fichas y las mascotas.";
                 // Upgrade from the verified unmodified backup, never stack patches.
                 originalHash = prior.OriginalHash;
             }
@@ -362,7 +372,7 @@ namespace BongoClaim
                 replaced = true;
                 if (File.Exists(statePath)) File.Replace(stateTemp, statePath, null); else File.Move(stateTemp, statePath);
                 committedOrRecovered = true;
-                return "Chest, pet and duplicate emoji exchange controls installed. Start Bongo Cat from Steam, then open Settings > General.";
+                return "Controles instalados. Inicia Bongo Cat desde Steam y abre Ajustes > General para configurarlos.";
             }
             catch (Exception failure)
             {
@@ -389,7 +399,7 @@ namespace BongoClaim
             var state = LoadState(root);
             if (state == null) throw new InvalidOperationException("No install record found. If you used another mod, use Steam Verify integrity.");
             var currentHash = Hash(target);
-            if (currentHash == state.OriginalHash) return "The original is already restored. The backup is retained.";
+            if (currentHash == state.OriginalHash) return "El archivo original ya está restaurado. Se conserva la copia de seguridad.";
             if (currentHash != state.PatchedHash) throw new InvalidOperationException("The game DLL changed after installation, likely from a Steam update. Refusing to overwrite it with an old backup. Use Steam Verify integrity if needed.");
             var backup = BackupPath(root, state.OriginalHash);
             if (!File.Exists(backup) || Hash(backup) != state.OriginalHash) throw new InvalidOperationException("The original backup is missing or damaged. Use Steam Verify integrity.");
@@ -400,7 +410,7 @@ namespace BongoClaim
                 EnsureGameClosed(root);
                 if (Hash(target) != currentHash) throw new InvalidOperationException("The game changed during restore. Nothing was changed.");
                 File.Replace(pending, target, null);
-                return "Original game DLL restored byte-for-byte. Auto claim is disabled. Your backup is retained.";
+                return "Se restauró el archivo original byte por byte. La reclamación automática quedó desactivada y se conserva la copia de seguridad.";
             }
             finally { if (File.Exists(pending)) File.Delete(pending); }
         }

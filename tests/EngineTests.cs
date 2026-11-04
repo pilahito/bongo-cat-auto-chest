@@ -134,7 +134,7 @@ namespace BongoClaim
             Test("token rows show loading, disable empty actions and preserve original callbacks", delegate {
                 var asm = Patched(true); var settings = Settings(asm); Call(settings, "Initialize");
                 asm.GetType("SteamTools.Interface").GetProperty("IsReady").SetValue(null, false, null); Call(settings, "Refresh");
-                Assert(((string)Call(settings, "RowLabel", 4)).Contains("loading"), "Unknown inventory displayed as zero");
+                Assert(((string)Call(settings, "RowLabel", 4)).Contains("cargando"), "Unknown inventory displayed as zero");
                 var shop = Shop(asm, false, false, false); Call(settings, "ClickRow", 4); Assert(Purchases(shop) == 0, "Loading row was clickable");
                 asm.GetType("SteamTools.Interface").GetProperty("IsReady").SetValue(null, true, null); Quantity(asm, "Chest_Token", 0); Call(settings, "Refresh"); Call(settings, "ClickRow", 4);
                 Assert(Purchases(shop) == 0 && !(bool)Call(settings, "RowCheckboxVisible", 4), "Empty token action or checkbox incorrect");
@@ -470,12 +470,12 @@ namespace BongoClaim
                 });
                 Test("native General rows initialise both defaults and avoid duplicate rows", delegate {
                     var asm = Patched(true); var settings = Settings(asm); Call(settings, "Initialize");
-                    Assert((int)Call(settings, "GeneralRowCount") == 7, "Expected Autostart, three toggles and three action rows");
-                    Assert(((string)Call(settings, "RowLabel", 1)).IndexOf("normal", StringComparison.OrdinalIgnoreCase) >= 0, "Normal row label missing");
-                    Assert(((string)Call(settings, "RowLabel", 2)).IndexOf("emote", StringComparison.OrdinalIgnoreCase) >= 0, "Emote row label missing");
+                    Assert((int)Call(settings, "GeneralRowCount") == 8, "Expected Autostart, three toggles and four action rows");
+                    Assert(((string)Call(settings, "RowLabel", 1)).IndexOf("normales", StringComparison.OrdinalIgnoreCase) >= 0, "Normal row label missing");
+                    Assert(((string)Call(settings, "RowLabel", 2)).IndexOf("emoji", StringComparison.OrdinalIgnoreCase) >= 0, "Emote row label missing");
                     Assert((bool)Call(settings, "RowToggleActive", 1) && (bool)Call(settings, "RowToggleActive", 2), "Defaults not active when settings first opens");
                     Assert(!String.IsNullOrWhiteSpace((string)Call(settings, "RowTooltip", 1)) && !String.IsNullOrWhiteSpace((string)Call(settings, "RowTooltip", 2)), "Control explanations missing");
-                    Call(settings, "Initialize"); Assert((int)Call(settings, "GeneralRowCount") == 7, "Repeated initialization duplicated controls");
+                    Call(settings, "Initialize"); Assert((int)Call(settings, "GeneralRowCount") == 8, "Repeated initialization duplicated controls");
                 });
                 Test("native settings use saved values and clicks change each claim mode live", delegate {
                     var asm = Patched(true); SetOption(asm, PatchEngine.NormalKey, false); SetOption(asm, PatchEngine.EmoteKey, true);
@@ -505,7 +505,7 @@ namespace BongoClaim
                     Assert(rejected, "Fixture cloning failure did not propagate");
                     var guard = asm.GetType("BongoCat.PlayerPrefsToggle").GetField("__BongoClaim_CloneInProgress_v1", BindingFlags.Static | BindingFlags.NonPublic);
                     Assert(guard != null && !(bool)guard.GetValue(null), "Failed clone left all preference Awake methods disabled");
-                    Call(settings, "Initialize"); Assert((int)Call(settings, "GeneralRowCount") == 7, "Native initialization could not retry after failed clone");
+                    Call(settings, "Initialize"); Assert((int)Call(settings, "GeneralRowCount") == 8, "Native initialization could not retry after failed clone");
                 });
                 Test("focused-menu hotkeys independently toggle native rows and persist their states", delegate {
                     var asm = Patched(true); var settings = Settings(asm); Call(settings, "Initialize");
@@ -554,8 +554,8 @@ namespace BongoClaim
                 Test("install is idempotent and restore is byte-for-byte", delegate {
                     var root = NewGame(); var target = PatchEngine.GameAssembly(root); var original = PatchEngine.Hash(target);
                     PatchEngine.Install(root, false); var changed = PatchEngine.Hash(target); Assert(changed != original, "No patch");
-                    Assert(PatchEngine.Install(root, false).StartsWith("Already"), "Not idempotent"); Assert(PatchEngine.Hash(target) == changed, "Installed twice");
-                    PatchEngine.Restore(root); Assert(PatchEngine.Hash(target) == original, "Restore not exact"); Assert(PatchEngine.Restore(root).Contains("already restored"), "Restore not idempotent");
+                    Assert(PatchEngine.Install(root, false).StartsWith("Ya está instalado"), "Not idempotent"); Assert(PatchEngine.Hash(target) == changed, "Installed twice");
+                    PatchEngine.Restore(root); Assert(PatchEngine.Hash(target) == original, "Restore not exact"); Assert(PatchEngine.Restore(root).Contains("ya está restaurado"), "Restore not idempotent");
                 });
                 Test("failed install-state commit rolls the game DLL back byte-for-byte", delegate {
                     var root = NewGame(); var target = PatchEngine.GameAssembly(root); var original = PatchEngine.Hash(target);
@@ -587,7 +587,7 @@ namespace BongoClaim
                     Assert(upgraded.Installed && upgraded.RuntimeControls && upgraded.Emotes, "Upgrade did not add both live controls");
                     Assert(PatchEngine.LoadState(root).OriginalHash == original, "Upgrade replaced original backup record with patched bytes");
                     Assert(PatchEngine.Hash(Path.Combine(root, ".bongo-claim", "backups", original + ".dll")) == original, "Upgrade changed original backup");
-                    Assert(PatchEngine.Install(root, true).StartsWith("Already"), "Upgraded install is not idempotent");
+                    Assert(PatchEngine.Install(root, true).StartsWith("Ya está instalado"), "Upgraded install is not idempotent");
                     PatchEngine.Restore(root); Assert(PatchEngine.Hash(target) == original, "Upgrade restore is not byte-for-byte");
                 });
                 Test("v1 upgrade rejects missing or damaged original backup without changing game", delegate {

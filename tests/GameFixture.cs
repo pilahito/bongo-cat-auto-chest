@@ -61,7 +61,7 @@ namespace UnityEngine
         public Transform transform { get; private set; }
         public bool activeSelf { get; private set; }
         public GameObject() : this("GameObject") { }
-        public GameObject(string objectName) { name = objectName; activeSelf = true; transform = (Transform)AddComponent(typeof(Transform)); }
+        public GameObject(string objectName, params Type[] components) { name = objectName; activeSelf = true; transform = (Transform)AddComponent(typeof(Transform)); foreach (var component in components ?? new Type[0]) if (component != typeof(Transform)) AddComponent(component); }
         public Component AddComponent(Type type) { var component = (Component)Activator.CreateInstance(type); component.Owner = this; Components.Add(component); return component; }
         public T AddComponent<T>() where T : Component, new() { return (T)AddComponent(typeof(T)); }
         public T GetComponent<T>() where T : Component { return Components.Find(c => c is T) as T; }
@@ -90,7 +90,11 @@ namespace UnityEngine
         public Transform Find(string path) { var current = this; foreach (var part in path.Split('/')) { current = current.Children.Find(child => child.gameObject.name == part); if (current == null) return null; } return current; }
         public int GetSiblingIndex() { return parent == null ? 0 : parent.Children.IndexOf(this); }
         public void SetSiblingIndex(int index) { if (parent == null) return; parent.Children.Remove(this); parent.Children.Insert(Math.Max(0, Math.Min(index, parent.Children.Count)), this); }
+        public void SetParent(Transform value, bool worldPositionStays) { parent = value; }
     }
+    public class RectTransform : Transform { public Vector2 anchorMin { get; set; } public Vector2 anchorMax { get; set; } public Vector2 pivot { get; set; } public Vector2 anchoredPosition { get; set; } public Vector2 sizeDelta { get; set; } }
+    public struct Vector2 { public float x, y; public Vector2(float x, float y) { this.x=x; this.y=y; } }
+    public struct Color { public Color(float r, float g, float b, float a) {} public static Color white { get { return new Color(1f,1f,1f,1f); } } }
     public sealed class WaitForSecondsRealtime { public WaitForSecondsRealtime(float seconds) { } }
     public enum KeyCode { F6 = 287, F7 = 288, F9 = 290 }
     public static class Time { public static float unscaledTime { get; set; } }
@@ -158,6 +162,7 @@ namespace UnityEngine.Events
 }
 namespace UnityEngine.UI
 {
+    public class Image : UnityEngine.Behaviour { public UnityEngine.Color color { get; set; } }
     public class Button : UnityEngine.Behaviour
     {
         public class ButtonClickedEvent : UnityEngine.Events.UnityEvent { }
@@ -168,7 +173,7 @@ namespace UnityEngine.UI
     }
 }
 namespace UnityEngine.Localization.Components { public class LocalizeStringEvent : UnityEngine.Behaviour { } }
-namespace TMPro { public class TMP_Text : UnityEngine.Component { public string text { get; set; } } }
+namespace TMPro { public enum TextAlignmentOptions { Center } public class TMP_Text : UnityEngine.Component { public string text { get; set; } public TextAlignmentOptions alignment { get; set; } public float fontSize { get; set; } public bool raycastTarget { get; set; } public UnityEngine.Color color { get; set; } } public class TextMeshProUGUI : TMP_Text {} }
 public class ToggleGameObject : UnityEngine.MonoBehaviour
 {
     public UnityEngine.Events.UnityEvent<bool> OnToggle = new UnityEngine.Events.UnityEvent<bool>();
