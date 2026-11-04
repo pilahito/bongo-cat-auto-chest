@@ -19,7 +19,12 @@ namespace UnityEngine {
     public static class Time { public static float unscaledTime { get { return 0; } } }
 }
 namespace UnityEngine.Events { public delegate void UnityAction(); }
-namespace UnityEngine.UI { public class Image : UnityEngine.Component { public UnityEngine.Color color { get; set; } } public class Button : UnityEngine.Component { public bool interactable { get; set; } public ButtonClickedEvent onClick { get { return null; } } public class ButtonClickedEvent { public void AddListener(UnityEngine.Events.UnityAction action) {} } } }
+namespace UnityEngine.UI {
+    public class Graphic : UnityEngine.Component { public UnityEngine.Color color { get; set; } }
+    public struct ColorBlock { public UnityEngine.Color normalColor { get; set; } public UnityEngine.Color highlightedColor { get; set; } public UnityEngine.Color pressedColor { get; set; } public UnityEngine.Color disabledColor { get; set; } }
+    public class Image : Graphic { }
+    public class Button : UnityEngine.Component { public Graphic targetGraphic { get; set; } public ColorBlock colors { get; set; } public bool interactable { get; set; } public ButtonClickedEvent onClick { get { return null; } } public class ButtonClickedEvent { public void AddListener(UnityEngine.Events.UnityAction action) {} } }
+}
 namespace TMPro { public enum TextAlignmentOptions { Center } public class TMP_Text : UnityEngine.Component { public string text { get; set; } public TextAlignmentOptions alignment { get; set; } public float fontSize { get; set; } public bool raycastTarget { get; set; } public UnityEngine.Color color { get; set; } } public class TextMeshProUGUI : TMP_Text {} }
 namespace Helper { public static class InputFieldCache { public static bool FocusingInputField { get { return false; } } } }
 namespace Heathen.SteamworksIntegration {

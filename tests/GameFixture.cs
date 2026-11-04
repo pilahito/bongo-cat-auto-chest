@@ -162,11 +162,21 @@ namespace UnityEngine.Events
 }
 namespace UnityEngine.UI
 {
-    public class Image : UnityEngine.Behaviour { public UnityEngine.Color color { get; set; } }
+    public class Graphic : UnityEngine.Behaviour { public UnityEngine.Color color { get; set; } }
+    public struct ColorBlock
+    {
+        public UnityEngine.Color normalColor { get; set; }
+        public UnityEngine.Color highlightedColor { get; set; }
+        public UnityEngine.Color pressedColor { get; set; }
+        public UnityEngine.Color disabledColor { get; set; }
+    }
+    public class Image : Graphic { }
     public class Button : UnityEngine.Behaviour
     {
         public class ButtonClickedEvent : UnityEngine.Events.UnityEvent { }
         public Button() { onClick = new ButtonClickedEvent(); interactable = true; }
+        public Graphic targetGraphic { get; set; }
+        public ColorBlock colors { get; set; }
         public ButtonClickedEvent onClick { get; set; }
         public bool interactable { get; set; }
         public void Click() { if (enabled && interactable) onClick.Invoke(); }

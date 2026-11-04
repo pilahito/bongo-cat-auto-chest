@@ -102,8 +102,9 @@ namespace BongoCat {
                 rect.anchorMin = arrowRect.anchorMin; rect.anchorMax = arrowRect.anchorMax; rect.pivot = arrowRect.pivot;
                 rect.sizeDelta = new Vector2(Math.Max(24f, arrowRect.sizeDelta.x), Math.Max(24f, arrowRect.sizeDelta.y));
                 rect.anchoredPosition = new Vector2(arrowRect.anchoredPosition.x + (arrowRect.sizeDelta.x + 4f) * 4f, arrowRect.anchoredPosition.y);
-                var image = icon.AddComponent<Image>(); image.color = new Color(0.30f, 0.17f, 0.23f, 1f);
+                var image = icon.AddComponent<Image>(); image.color = Color.white;
                 var button = icon.AddComponent<Button>(); button.onClick.AddListener(__BongoClaim_ToggleExchange_v1);
+                button.targetGraphic = image;
                 var labelObject = new GameObject("Label", typeof(RectTransform)); labelObject.transform.SetParent(icon.transform, false);
                 var labelRect = labelObject.GetComponent<RectTransform>(); labelRect.anchorMin = new Vector2(0f, 0f); labelRect.anchorMax = new Vector2(1f, 1f); labelRect.sizeDelta = new Vector2(0f, 0f);
                 var label = labelObject.AddComponent<TextMeshProUGUI>(); label.text = "↻"; label.alignment = TextAlignmentOptions.Center; label.fontSize = 25f; label.raycastTarget = false;
@@ -123,8 +124,17 @@ namespace BongoCat {
             float iconHeight = placedRect.sizeDelta.y;
             iconLabel.text = "♥";
             iconLabel.fontSize = Math.Max(18f, Math.Min(27f, iconHeight * 0.82f));
-            iconLabel.color = __BongoClaim_AutoExchange_v1 ? new Color(1f, 0.88f, 0.94f, 1f) : new Color(1f, 0.54f, 0.70f, 1f);
-            iconImage.color = __BongoClaim_AutoExchange_v1 ? new Color(0.66f, 0.20f, 0.39f, 1f) : new Color(0.30f, 0.17f, 0.23f, 1f);
+            iconLabel.color = Color.white;
+            var sourceImage = arrow.GetComponent<Image>();
+            if (sourceImage) iconImage.color = sourceImage.color;
+            var sourceButton = arrow.GetComponent<Button>();
+            var iconButton = __BongoClaim_ExchangeIcon_v1.GetComponent<Button>();
+            if (sourceButton && iconButton) {
+                var palette = sourceButton.colors;
+                if (__BongoClaim_AutoExchange_v1) palette.normalColor = palette.highlightedColor;
+                iconButton.colors = palette;
+                iconButton.targetGraphic = iconImage;
+            }
         }
         private static FieldInfo __BongoClaim_FindField_v1(Type type, string name, bool isStatic) {
             return type.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | (isStatic ? BindingFlags.Static : BindingFlags.Instance));
