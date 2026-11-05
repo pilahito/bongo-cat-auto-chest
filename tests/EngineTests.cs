@@ -222,6 +222,22 @@ namespace BongoClaim
                 Assert(PatchEngine.LoadState(root).OriginalHash == original, "v2 upgrade backed up modified DLL");
                 PatchEngine.Restore(root); Assert(PatchEngine.Hash(target) == original, "v2 upgrade restore not exact");
             });
+            Test("v15 upgrade rebuilds themed exchange controls from the verified original", delegate {
+                var root = NewGame(); var target = PatchEngine.GameAssembly(root); var original = PatchEngine.Hash(target);
+                PatchEngine.Install(root, true);
+                using (var asm = AssemblyDefinition.ReadAssembly(target, new ReaderParameters { InMemory = true })) {
+                    var shop = asm.MainModule.Types.Single(t => t.FullName == "BongoCat.Shop");
+                    shop.Methods.Single(m => m.Name == PatchEngine.Marker).Name = PatchEngine.V15Marker;
+                    shop.Fields.Single(f => f.Name == PatchEngine.SettingsMarker).Name = PatchEngine.V15SettingsMarker;
+                    asm.Write(target);
+                }
+                File.Delete(Path.Combine(root, ".bongo-claim", "backups", original + ".dll"));
+                SaveLegacyState(root, original, PatchEngine.Hash(target), true);
+                var prior = PatchEngine.Inspect(target); Assert(prior.Supported && prior.RuntimeControls && !prior.OwnedTokenControls, "v15 was not treated as upgradeable");
+                PatchEngine.Install(root, true); Assert(PatchEngine.Inspect(target).OwnedTokenControls, "v15 upgrade omitted the new theme fix");
+                Assert(PatchEngine.LoadState(root).OriginalHash == original, "v15 upgrade backed up a modified DLL");
+                PatchEngine.Restore(root); Assert(PatchEngine.Hash(target) == original, "v15 upgrade restore not exact");
+            });
             Test("unknown token layouts and incomplete new controls are rejected", delegate {
                 var input = NewFile("missing-token");
                 using (var asm = AssemblyDefinition.ReadAssembly(fixture)) { asm.MainModule.GetTypes().Single(t => t.FullName == "SteamTools.Game/Inventory").Fields.Single(f => f.Name == "Chest_Token").Name = "ChangedToken"; asm.Write(input); }

@@ -106,17 +106,19 @@ namespace BongoCat {
                 if (from != null && to != null) to.SetValue(destination, from.GetValue(source));
             }
         }
-        private static void __BongoClaim_RefreshTheme_v1(Component themed) {
-            if (!themed) return;
+        private static bool __BongoClaim_RefreshTheme_v1(Component themed) {
+            if (!themed) return false;
             Type managerType = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.UiThemeManager");
-            if (managerType == null) return;
+            Type componentType = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.ThemedComponent");
+            if (managerType == null || componentType == null) return false;
             var instanceProperty = managerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+            var shownProperty = managerType.GetProperty("Shown", BindingFlags.Public | BindingFlags.Instance);
             object manager = instanceProperty == null ? null : instanceProperty.GetValue(null, null);
-            if (manager == null) return;
-            var redraw = managerType.GetMethod("Redraw", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { themed.GetType().BaseType }, null);
-            if (redraw == null) foreach (MethodInfo candidate in managerType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-                if (candidate.Name == "Redraw" && candidate.GetParameters().Length == 1) { redraw = candidate; break; }
-            if (redraw != null) redraw.Invoke(manager, new object[] { themed });
+            if (manager == null || shownProperty == null || shownProperty.GetValue(manager, null) == null) return false;
+            MethodInfo redraw = managerType.GetMethod("Redraw", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { componentType }, null);
+            if (redraw == null) return false;
+            redraw.Invoke(manager, new object[] { themed });
+            return true;
         }
         private static void __BongoClaim_ApplyNativeTheme_v1(Component arrow, GameObject icon, Button button, TMP_Text label) {
             if (!arrow || !icon || !button || !label) return;
@@ -129,6 +131,9 @@ namespace BongoCat {
             }
             if (Time.unscaledTime < __BongoClaim_NextThemeProbe_v1) return;
             __BongoClaim_NextThemeProbe_v1 = Time.unscaledTime + 1f;
+            bool wasActive = icon.activeSelf;
+            icon.SetActive(false);
+            try {
             Type gameAssembly = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.ThemedButton");
             Type iconThemeType = typeof(Shop).Assembly.GetType("BongoCat.UiThemes.ThemedIconButton");
             Component source = gameAssembly == null ? null : arrow.GetComponent(gameAssembly);
@@ -152,7 +157,7 @@ namespace BongoCat {
                     targetIconField.SetValue(target, targetIcon);
                     __BongoClaim_ThemeIconColor_v1 = targetIcon;
                 }
-                __BongoClaim_RefreshTheme_v1(target);
+                if (!__BongoClaim_RefreshTheme_v1(target)) return;
                 __BongoClaim_ThemeApplied_v1 = true;
                 if (__BongoClaim_ThemeIconColor_v1) {
                     __BongoClaim_FindMethod_v1(__BongoClaim_ThemeIconColor_v1.GetType(), "SetSelected", 1).Invoke(__BongoClaim_ThemeIconColor_v1, new object[] { __BongoClaim_AutoExchange_v1 });
@@ -167,8 +172,11 @@ namespace BongoCat {
                 Component target = icon.GetComponent(iconThemeType);
                 if (!target) target = icon.AddComponent(iconThemeType);
                 __BongoClaim_CopyThemeFields_v1(source, target, new string[] { "_normalColor", "_highlightedColor", "_pressedColor", "_selectedColor", "_disabledColor" });
-                __BongoClaim_RefreshTheme_v1(target);
+                if (!__BongoClaim_RefreshTheme_v1(target)) return;
                 __BongoClaim_ThemeApplied_v1 = true;
+            }
+            } finally {
+                icon.SetActive(wasActive);
             }
         }
         private static void __BongoClaim_EnsureExchangeIcon_v1(object exchange) {
@@ -315,7 +323,11 @@ namespace BongoCat {
                 object visibleExchange = visibleField == null ? null : visibleField.GetValue(null);
                 if (visibleExchange != null) __BongoClaim_EnsureExchangeIcon_v1(visibleExchange);
             } catch (Exception ex) {
-                UnityEngine.Debug.Log("[Bongo Cat Auto Chest] Could not apply the exchange icon theme: " + ex.Message);
+                if (Time.unscaledTime >= __BongoClaim_NextThemeProbe_v1) {
+                    __BongoClaim_NextThemeProbe_v1 = Time.unscaledTime + 30f;
+                    Exception cause = ex is TargetInvocationException && ex.InnerException != null ? ex.InnerException : ex;
+                    UnityEngine.Debug.Log("[Bongo Cat Auto Chest] Could not apply the exchange icon theme: " + cause.ToString());
+                }
             }
             if (!SteamTools.Interface.IsReady) return;
             try {
