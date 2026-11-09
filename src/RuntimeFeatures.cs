@@ -157,6 +157,8 @@ namespace BongoCat {
                     targetIconField.SetValue(target, targetIcon);
                     __BongoClaim_ThemeIconColor_v1 = targetIcon;
                 }
+                if (!wasActive) return;
+                icon.SetActive(true);
                 if (!__BongoClaim_RefreshTheme_v1(target)) return;
                 __BongoClaim_ThemeApplied_v1 = true;
                 if (__BongoClaim_ThemeIconColor_v1) {
@@ -172,6 +174,8 @@ namespace BongoCat {
                 Component target = icon.GetComponent(iconThemeType);
                 if (!target) target = icon.AddComponent(iconThemeType);
                 __BongoClaim_CopyThemeFields_v1(source, target, new string[] { "_normalColor", "_highlightedColor", "_pressedColor", "_selectedColor", "_disabledColor" });
+                if (!wasActive) return;
+                icon.SetActive(true);
                 if (!__BongoClaim_RefreshTheme_v1(target)) return;
                 __BongoClaim_ThemeApplied_v1 = true;
             }
