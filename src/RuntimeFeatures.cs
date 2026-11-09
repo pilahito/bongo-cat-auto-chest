@@ -242,6 +242,12 @@ namespace BongoCat {
                 if (method.Name == name && method.GetParameters().Length == parameters) return method;
             throw new MissingMethodException(type.FullName, name);
         }
+        private static object __BongoClaim_ResolveEmoteGroup_v1(Type groupType) {
+            if (groupType == null || !groupType.IsEnum) throw new InvalidOperationException("The game's emoji exchange group is unavailable");
+            string[] candidates = new string[] { "Emotes", "Emote", "Emojis", "Emoji" };
+            foreach (string name in candidates) if (Enum.IsDefined(groupType, name)) return Enum.Parse(groupType, name);
+            throw new InvalidOperationException("The game has no emoji exchange category");
+        }
         private static bool __BongoClaim_ExchangeCanFill_v1(object exchange, object group) {
             object[] args = new object[] { group, null };
             return (bool)__BongoClaim_FindMethod_v1(exchange.GetType(), "CanFillExchangeWithDuplicates", 2).Invoke(exchange, args);
@@ -356,7 +362,7 @@ namespace BongoCat {
                 if (exchange == null) { __BongoClaim_ExchangeStatus_v1 = "ACTIVO | abre la colección"; return; }
                 Type groupType = __BongoClaim_FindMethod_v1(exchangeType, "CanFillExchangeWithDuplicates", 2).GetParameters()[0].ParameterType;
             if (groupType == null || !groupType.IsEnum) throw new InvalidOperationException("The game's emoji exchange group is unavailable");
-                object group = Enum.Parse(groupType, "Emote");
+                object group = __BongoClaim_ResolveEmoteGroup_v1(groupType);
                 __BongoClaim_StartEmojiExchange_v1(exchange, exchangeType, group);
             } catch (Exception ex) {
                 try {

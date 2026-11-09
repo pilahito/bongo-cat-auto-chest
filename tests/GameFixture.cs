@@ -199,7 +199,7 @@ namespace BongoCat
 {
     public class ItemExchange : UnityEngine.MonoBehaviour
     {
-        public enum ExchangeGroup { Cosmetic, Emote }
+        public enum ExchangeGroup { Cosmetic, Emotes }
         public static int[] EmoteTabs = new int[] { 7 };
         public static int LastOpenedTab = -1;
         public static ExchangeGroup LastRequestedGroup;

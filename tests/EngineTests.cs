@@ -12,6 +12,7 @@ namespace BongoClaim
 {
     internal static class EngineTests
     {
+        private enum LegacyExchangeGroup { Cosmetic, Emote }
         private static int passed;
         private static string temp;
         private static string fixture;
@@ -238,6 +239,22 @@ namespace BongoClaim
                 Assert(PatchEngine.LoadState(root).OriginalHash == original, "v15 upgrade backed up a modified DLL");
                 PatchEngine.Restore(root); Assert(PatchEngine.Hash(target) == original, "v15 upgrade restore not exact");
             });
+            Test("v16 upgrade adds current emoji category compatibility", delegate {
+                var root = NewGame(); var target = PatchEngine.GameAssembly(root); var original = PatchEngine.Hash(target);
+                PatchEngine.Install(root, true);
+                using (var asm = AssemblyDefinition.ReadAssembly(target, new ReaderParameters { InMemory = true })) {
+                    var shop = asm.MainModule.Types.Single(t => t.FullName == "BongoCat.Shop");
+                    shop.Methods.Single(m => m.Name == PatchEngine.Marker).Name = PatchEngine.V16Marker;
+                    shop.Fields.Single(f => f.Name == PatchEngine.SettingsMarker).Name = PatchEngine.V16SettingsMarker;
+                    asm.Write(target);
+                }
+                File.Delete(Path.Combine(root, ".bongo-claim", "backups", original + ".dll"));
+                SaveLegacyState(root, original, PatchEngine.Hash(target), true);
+                var prior = PatchEngine.Inspect(target); Assert(prior.Supported && prior.RuntimeControls && !prior.OwnedTokenControls, "v16 was not treated as upgradeable");
+                PatchEngine.Install(root, true); Assert(PatchEngine.Inspect(target).OwnedTokenControls, "v16 upgrade omitted enum compatibility");
+                Assert(PatchEngine.LoadState(root).OriginalHash == original, "v16 upgrade backed up a modified DLL");
+                PatchEngine.Restore(root); Assert(PatchEngine.Hash(target) == original, "v16 upgrade restore not exact");
+            });
             Test("unknown token layouts and incomplete new controls are rejected", delegate {
                 var input = NewFile("missing-token");
                 using (var asm = AssemblyDefinition.ReadAssembly(fixture)) { asm.MainModule.GetTypes().Single(t => t.FullName == "SteamTools.Game/Inventory").Fields.Single(f => f.Name == "Chest_Token").Name = "ChangedToken"; asm.Write(input); }
@@ -445,7 +462,8 @@ namespace BongoClaim
                     var asm = Patched(false); var exchangeType = asm.GetType("BongoCat.ItemExchange");
                     exchangeType.GetField("LastOpenedTab").SetValue(null, -1); exchangeType.GetField("CanFillCalls").SetValue(null, 0);
                     var exchange = Activator.CreateInstance(exchangeType); var groupType = exchangeType.GetNestedType("ExchangeGroup");
-                    var group = Enum.Parse(groupType, "Emote");
+                    var resolver = asm.GetType("BongoCat.SettingsManager").GetMethod("__BongoClaim_ResolveEmoteGroup_v1", BindingFlags.NonPublic | BindingFlags.Static);
+                    var group = resolver.Invoke(null, new object[] { groupType });
                     var start = asm.GetType("BongoCat.SettingsManager").GetMethod("__BongoClaim_StartEmojiExchange_v1", BindingFlags.NonPublic | BindingFlags.Static);
                     start.Invoke(null, new object[] { exchange, exchangeType, group });
                     Assert((int)exchangeType.GetField("LastOpenedTab").GetValue(null) == 7, "The emoji tab was not opened first");
@@ -456,11 +474,20 @@ namespace BongoClaim
                     var asm = Patched(false); var exchangeType = asm.GetType("BongoCat.ItemExchange");
                     exchangeType.GetField("LastOpenedTab").SetValue(null, -1); exchangeType.GetField("CanFillCalls").SetValue(null, 0);
                     var exchange = Activator.CreateInstance(exchangeType); exchangeType.GetProperty("HasItemsSlotted").SetValue(exchange, true, null);
-                    var group = Enum.Parse(exchangeType.GetNestedType("ExchangeGroup"), "Emote");
+                    var resolver = asm.GetType("BongoCat.SettingsManager").GetMethod("__BongoClaim_ResolveEmoteGroup_v1", BindingFlags.NonPublic | BindingFlags.Static);
+                    var group = resolver.Invoke(null, new object[] { exchangeType.GetNestedType("ExchangeGroup") });
                     var start = asm.GetType("BongoCat.SettingsManager").GetMethod("__BongoClaim_StartEmojiExchange_v1", BindingFlags.NonPublic | BindingFlags.Static);
                     start.Invoke(null, new object[] { exchange, exchangeType, group });
                     Assert((int)exchangeType.GetField("LastOpenedTab").GetValue(null) == -1, "The user's selected tab or slots were changed");
                     Assert((int)exchangeType.GetField("CanFillCalls").GetValue(null) == 0, "Manual slots should block automatic filling");
+                });
+                Test("emoji exchange group resolver supports renamed plural and legacy enums", delegate {
+                    var asm = Patched(false);
+                    var resolver = asm.GetType("BongoCat.SettingsManager").GetMethod("__BongoClaim_ResolveEmoteGroup_v1", BindingFlags.NonPublic | BindingFlags.Static);
+                    var current = resolver.Invoke(null, new object[] { asm.GetType("BongoCat.ItemExchange").GetNestedType("ExchangeGroup") });
+                    var legacy = resolver.Invoke(null, new object[] { typeof(LegacyExchangeGroup) });
+                    Assert(current.ToString() == "Emotes", "Current game category was not selected");
+                    Assert(legacy.ToString() == "Emote", "Legacy game category was not selected");
                 });
                 Test("normal ready chest claims once and suppresses its popup", delegate {
                     var asm = Patched(false); var shop = Shop(asm, true, false, false); Call(shop, "OnChestReady"); Call(shop, "OnChestReady");
