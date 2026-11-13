@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
-$releaseName = 'BongoCatAutoChest-v1.18.0-windows'
+$releaseName = 'BongoCatAutoChest-v1.19.0-windows'
 $packageFolder = Join-Path $PSScriptRoot "artifacts\$releaseName"
 New-Item -ItemType Directory -Path $packageFolder -Force | Out-Null
 $files = [ordered]@{
