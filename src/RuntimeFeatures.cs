@@ -88,9 +88,9 @@ namespace BongoCat {
                 if (labelObject) {
                     var label = labelObject.GetComponent<TMP_Text>();
                     if (label) {
-                        label.text = __BongoClaim_AutoExchange_v1 ? "♥ ON" : "♡ OFF";
-                        label.color = __BongoClaim_AutoExchange_v1 ? new Color(0.22f, 0.82f, 0.48f, 1f) : new Color(0.58f, 0.61f, 0.65f, 1f);
-                        label.fontSize = 10f;
+                        label.text = __BongoClaim_AutoExchange_v1 ? "♥ ON" : "♥ OFF";
+                        label.color = __BongoClaim_AutoExchange_v1 ? new Color(0.08f, 0.72f, 0.28f, 1f) : new Color(0.90f, 0.12f, 0.16f, 1f);
+                        label.fontSize = 11f;
                     }
                 }
             }
@@ -236,12 +236,10 @@ namespace BongoCat {
             var placedRect = __BongoClaim_ExchangeIcon_v1.GetComponent<RectTransform>();
             var sourceRect = arrow.GetComponent<RectTransform>();
             placedRect.anchorMin = sourceRect.anchorMin; placedRect.anchorMax = sourceRect.anchorMax; placedRect.pivot = sourceRect.pivot;
-            placedRect.sizeDelta = new Vector2(Math.Max(40f, sourceRect.sizeDelta.x), Math.Max(24f, sourceRect.sizeDelta.y));
+            placedRect.sizeDelta = new Vector2(Math.Max(48f, sourceRect.sizeDelta.x), Math.Max(24f, sourceRect.sizeDelta.y));
             placedRect.anchoredPosition = new Vector2(sourceRect.anchoredPosition.x + (sourceRect.sizeDelta.x + 4f) * 4f, sourceRect.anchoredPosition.y);
             __BongoClaim_ExchangeIcon_v1.SetActive(visible);
             var iconLabel = __BongoClaim_ExchangeIcon_v1.transform.Find("Label").GetComponent<TMP_Text>();
-            var iconImage = __BongoClaim_ExchangeIcon_v1.GetComponent<Image>();
-            float iconHeight = placedRect.sizeDelta.y;
             var iconButton = __BongoClaim_ExchangeIcon_v1.GetComponent<Button>();
             __BongoClaim_ApplyNativeTheme_v1(arrow, __BongoClaim_ExchangeIcon_v1, iconButton, iconLabel);
             __BongoClaim_UpdateExchangeIconState_v1();
