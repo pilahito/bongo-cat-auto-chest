@@ -82,11 +82,26 @@ namespace BongoCat {
         private static string __BongoClaim_ExchangeLabel_v1() {
             return "🔄 Intercambio automático de emojis duplicados: " + __BongoClaim_ExchangeStatus_v1;
         }
+        private static void __BongoClaim_UpdateExchangeIconState_v1() {
+            if (__BongoClaim_ExchangeIcon_v1) {
+                var labelObject = __BongoClaim_ExchangeIcon_v1.transform.Find("Label");
+                if (labelObject) {
+                    var label = labelObject.GetComponent<TMP_Text>();
+                    if (label) label.text = __BongoClaim_AutoExchange_v1 ? "♥" : "♡";
+                }
+            }
+            if (__BongoClaim_ThemeIconColor_v1 && __BongoClaim_ThemeSelected_v1 != __BongoClaim_AutoExchange_v1) {
+                __BongoClaim_FindMethod_v1(__BongoClaim_ThemeIconColor_v1.GetType(), "SetSelected", 1).Invoke(__BongoClaim_ThemeIconColor_v1, new object[] { __BongoClaim_AutoExchange_v1 });
+                __BongoClaim_ThemeSelected_v1 = __BongoClaim_AutoExchange_v1;
+            }
+        }
         private static void __BongoClaim_ToggleExchange_v1() {
             __BongoClaim_AutoExchange_v1 = !__BongoClaim_AutoExchange_v1;
             __BongoClaim_NextExchange_v1 = Time.unscaledTime + 3f;
             __BongoClaim_ExchangeStatus_v1 = __BongoClaim_AutoExchange_v1 ? "ACTIVO | esperando" : (__BongoClaim_ExchangeInFlight_v1 ? "DESACTIVADO | terminando intercambio" : "DESACTIVADO");
+            __BongoClaim_UpdateExchangeIconState_v1();
             __BongoClaim_SetLabel_v1(__BongoClaim_ExchangeRow_v1, __BongoClaim_ExchangeLabel_v1());
+            UnityEngine.Debug.Log("[Bongo Cat Auto Chest] Emoji auto-exchange " + (__BongoClaim_AutoExchange_v1 ? "ON" : "OFF"));
         }
         private static Component __BongoClaim_FindThemedSibling_v1(Transform parent, Type themedType, GameObject exclude) {
             if (parent == null || themedType == null) return null;
@@ -223,7 +238,7 @@ namespace BongoCat {
             var iconLabel = __BongoClaim_ExchangeIcon_v1.transform.Find("Label").GetComponent<TMP_Text>();
             var iconImage = __BongoClaim_ExchangeIcon_v1.GetComponent<Image>();
             float iconHeight = placedRect.sizeDelta.y;
-            iconLabel.text = "♥";
+            iconLabel.text = __BongoClaim_AutoExchange_v1 ? "♥" : "♡";
             iconLabel.fontSize = Math.Max(17f, Math.Min(__BongoClaim_AutoExchange_v1 ? 27f : 22f, iconHeight * (__BongoClaim_AutoExchange_v1 ? 0.86f : 0.70f)));
             iconLabel.color = Color.white;
             var iconButton = __BongoClaim_ExchangeIcon_v1.GetComponent<Button>();
